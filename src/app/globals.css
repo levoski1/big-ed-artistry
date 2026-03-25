@@ -1,0 +1,430 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Libre+Franklin:wght@200;300;400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE (default)
+═══════════════════════════════════════════════════════════════ */
+:root,
+html.theme-dark {
+  --gold-primary: #B8860B;
+  --gold-light:   #D4A84B;
+  --gold-dark:    #8B6914;
+  --gold-accent:  #C9A227;
+
+  --bg-dark:       #000000;
+  --bg-card:       #0A0A0A;
+  --bg-card-hover: #141414;
+  --bg-input:      #0A0A0A;
+
+  --text-primary:   #FFFFFF;
+  --text-secondary: #CFCFCF;
+  --text-muted:     #9A9A9A;
+  --text-on-gold:   #0F0E0C;
+
+  --border-color:  #242424;
+  --border-focus:  #B8860B;
+
+  --success: #4A7C59;
+  --danger:  #8B3A3A;
+  --warning: #C9A227;
+
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.6);
+
+  --nav-bg-scrolled:  rgba(0,0,0,0.95);
+  --mobile-menu-bg:   rgba(0,0,0,0.98);
+  --overlay-bg:       rgba(0,0,0,0.97);
+
+  --noise-opacity: 0.03;
+  --hero-gradient: radial-gradient(ellipse 60% 80% at 70% 50%, rgba(184,134,11,0.07) 0%, transparent 70%);
+  --section-gradient: radial-gradient(ellipse 50% 70% at 50% 50%, rgba(184,134,11,0.06) 0%, transparent 70%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE
+═══════════════════════════════════════════════════════════════ */
+html.theme-light {
+  --gold-primary: #8B6914;
+  --gold-light:   #A07818;
+  --gold-dark:    #6B5010;
+  --gold-accent:  #9A7A1C;
+
+  --bg-dark:       #FFFFFF;
+  --bg-card:       #FFFFFF;
+  --bg-card-hover: #F6F6F6;
+  --bg-input:      #FFFFFF;
+
+  --text-primary:   #000000;
+  --text-secondary: #303030;
+  --text-muted:     #666666;
+  --text-on-gold:   #FFFFFF;
+
+  --border-color:  #D9D9D9;
+  --border-focus:  #8B6914;
+
+  --success: #2D6B42;
+  --danger:  #A03030;
+  --warning: #8B6914;
+
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.16);
+
+  --nav-bg-scrolled:  rgba(255,255,255,0.96);
+  --mobile-menu-bg:   rgba(255,255,255,0.99);
+  --overlay-bg:       rgba(255,255,255,0.97);
+
+  --noise-opacity: 0.015;
+  --hero-gradient: radial-gradient(ellipse 60% 80% at 70% 50%, rgba(139,105,20,0.06) 0%, transparent 70%);
+  --section-gradient: radial-gradient(ellipse 50% 70% at 50% 50%, rgba(139,105,20,0.05) 0%, transparent 70%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE RESET
+═══════════════════════════════════════════════════════════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Libre Franklin', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-weight: 300;
+  overflow-x: hidden;
+  /* Smooth colour transitions across the whole page */
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  opacity: var(--noise-opacity);
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  transition: opacity 0.35s ease;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  transition: color 0.35s ease;
+}
+
+a { color: inherit; text-decoration: none; transition: color 0.3s ease; }
+img { max-width: 100%; height: auto; }
+input, textarea, select, button { font-family: 'Libre Franklin', sans-serif; }
+
+::selection { background: var(--gold-primary); color: var(--text-on-gold); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); transition: background 0.35s ease; }
+::-webkit-scrollbar-thumb { background: var(--border-color); transition: background 0.35s ease; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE SPECIFIC OVERRIDES
+   Target hardcoded dark rgba backgrounds in inline styles
+═══════════════════════════════════════════════════════════════ */
+
+/* Inputs & selects */
+html.theme-light input,
+html.theme-light textarea,
+html.theme-light select {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+html.theme-light input::placeholder,
+html.theme-light textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Cards that use hardcoded bg-dark fallbacks */
+html.theme-light .card-hover:hover {
+  box-shadow: 0 16px 48px rgba(0,0,0,0.15) !important;
+}
+
+/* Gallery overlay adjustment */
+html.theme-light .gallery-overlay {
+  background: linear-gradient(to top, rgba(250,248,244,0.94) 0%, transparent 60%) !important;
+}
+
+/* Admin / dashboard panels */
+html.theme-light [data-admin-panel] {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+═══════════════════════════════════════════════════════════════ */
+@keyframes drawLine    { from{stroke-dashoffset:1000} to{stroke-dashoffset:0} }
+@keyframes fadeInUp    { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+@keyframes floatHand   { 0%,100%{transform:translate(0,0) rotate(-8deg)} 25%{transform:translate(18px,12px) rotate(-2deg)} 50%{transform:translate(36px,6px) rotate(-10deg)} 75%{transform:translate(20px,-4px) rotate(-5deg)} }
+@keyframes shimmer     { 0%{background-position:-200% center} 100%{background-position:200% center} }
+@keyframes pulse-gold  { 0%,100%{box-shadow:0 0 0 0 rgba(184,134,11,0.4)} 50%{box-shadow:0 0 0 8px rgba(184,134,11,0)} }
+@keyframes spin        { to{transform:rotate(360deg)} }
+@keyframes sketchPath  { 0%{stroke-dashoffset:800} 100%{stroke-dashoffset:0} }
+@keyframes themeToggle { 0%{transform:scale(0.8) rotate(-30deg);opacity:0} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+═══════════════════════════════════════════════════════════════ */
+.animate-draw       { animation: drawLine 2.4s ease forwards; }
+.animate-float-hand { animation: floatHand 3.6s ease-in-out infinite; }
+.animate-fade-up    { animation: fadeInUp 0.7s ease both; }
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
+.gold-shimmer {
+  background: linear-gradient(90deg, var(--gold-dark) 0%, var(--gold-light) 50%, var(--gold-dark) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+.star { cursor: pointer; transition: transform 0.15s; }
+.star:hover { transform: scale(1.2); }
+
+.cart-badge {
+  position: absolute; top: -6px; right: -6px;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  background: var(--gold-primary);
+  color: var(--text-on-gold);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  transition: background 0.35s ease;
+}
+
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease,
+              background-color 0.35s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--gold-primary) !important;
+}
+
+.sticky-summary { position: sticky; top: 24px; }
+
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+
+/* ─── Theme toggle button ──────────────────────────────────────────── */
+.theme-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: background 0.35s ease, border-color 0.35s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+}
+.theme-toggle:hover {
+  border-color: var(--gold-primary);
+}
+.theme-toggle__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.theme-toggle__thumb {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-primary), var(--gold-accent));
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  box-shadow: var(--shadow-sm);
+}
+html.theme-light .theme-toggle__thumb {
+  transform: translateX(20px);
+}
+html.theme-dark .theme-toggle__thumb {
+  transform: translateX(0px);
+}
+.theme-toggle__icon {
+  animation: themeToggle 0.3s ease;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE — COMPONENT OVERRIDES
+   These target inline-styled elements that can't use var() alone
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Page/section backgrounds ─────────────────────────────────── */
+html.theme-light body {
+  background-color: var(--bg-dark);
+}
+
+/* ── Artwork art placeholder ──────────────────────────────────── */
+html.theme-light .art-placeholder-inner {
+  background: var(--bg-card);
+}
+
+/* ── Gradient overlays on art thumbnails (keep dark for contrast) */
+html.theme-light .art-overlay {
+  background: linear-gradient(to top, rgba(15,14,12,0.88) 0%, transparent 65%) !important;
+}
+
+/* ── SVG sketch lines on light bg ─────────────────────────────── */
+html.theme-light .sketch-line {
+  stroke: var(--gold-primary);
+}
+
+/* ── Admin sidebar ────────────────────────────────────────────── */
+html.theme-light aside {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* ── Form inputs (all pages) ──────────────────────────────────── */
+html.theme-light input:not([type="checkbox"]):not([type="radio"]),
+html.theme-light textarea,
+html.theme-light select {
+  background: var(--bg-input) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.theme-light input:focus,
+html.theme-light textarea:focus,
+html.theme-light select:focus {
+  border-color: var(--border-focus) !important;
+  outline: none;
+}
+
+/* ── Tables in admin ──────────────────────────────────────────── */
+html.theme-light [style*="background:'var(--bg-dark)'"],
+html.theme-light [style*='background:"var(--bg-dark)"'] {
+  background: var(--bg-dark) !important;
+}
+
+/* ── Mobile menu overlay ──────────────────────────────────────── */
+html.theme-light .mobile-menu-overlay {
+  background: var(--mobile-menu-bg) !important;
+}
+
+/* ── Cart badge ───────────────────────────────────────────────── */
+html.theme-light .cart-badge {
+  background: var(--gold-primary);
+  color: #fff;
+}
+
+/* ── Card hover shadow ────────────────────────────────────────── */
+html.theme-light .card-hover:hover {
+  box-shadow: 0 16px 40px rgba(0,0,0,0.14) !important;
+}
+
+/* ── Section backgrounds via CSS vars ─────────────────────────── */
+html.theme-light section,
+html.theme-light footer {
+  transition: background-color 0.35s ease, border-color 0.35s ease;
+}
+
+/* ── Scrollbar light mode ─────────────────────────────────────── */
+html.theme-light ::-webkit-scrollbar-track { background: #f0ece4; }
+html.theme-light ::-webkit-scrollbar-thumb { background: #c8bfb0; }
+html.theme-light ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* ── Toast notification ────────────────────────────────────────── */
+html.theme-light .toast-container {
+  background: var(--bg-card) !important;
+  border-color: var(--gold-primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Gold shimmer text - adjust for light bg ───────────────────── */
+html.theme-light .gold-shimmer {
+  background: linear-gradient(90deg, var(--gold-dark) 0%, #C9970A 50%, var(--gold-dark) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL SMOOTH THEME TRANSITION
+   Targeted at colour-only properties to avoid breaking animations
+═══════════════════════════════════════════════════════════════ */
+
+/* Apply colour transitions to common layout elements */
+header, nav, main, footer, aside, section, article, div, span, p, h1, h2, h3, h4, h5, h6,
+a, button, input, textarea, select, label, li, ul, ol, table, thead, tbody, tr, td, th {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.35s;
+  transition-timing-function: ease;
+}
+
+/* Preserve transform/animation transitions (don't let above override them) */
+.card-hover,
+.theme-toggle__thumb,
+.animate-draw *,
+.animate-float-hand,
+.animate-fade-up,
+.star {
+  transition-property: background-color, border-color, color, box-shadow,
+                        transform, opacity, box-shadow;
+  transition-duration: 0.35s, 0.35s, 0.35s, 0.35s,
+                       0.25s, 0.3s, 0.25s;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE — INLINE STYLE PATTERN OVERRIDES
+   Target the bg-dark/bg-card/border-color backgrounds that appear
+   as section backgrounds throughout the app
+═══════════════════════════════════════════════════════════════ */
+
+/* Any element whose computed background uses var(--bg-dark) or var(--bg-card)
+   already gets the right colour from the CSS var — no extra rules needed.
+   These rules handle the few cases using literal class names. */
+
+html.theme-light .reveal {
+  /* slightly brighter reveal on light bg */
+}
+
+/* Section dividers */
+html.theme-light hr,
+html.theme-light [style*="border-top: '1px solid var(--border-color)'"],
+html.theme-light [style*="borderTop: '1px solid var(--border-color)'"] {
+  border-color: var(--border-color);
+}
+
+/* Table row hovers in admin */
+html.theme-light [style*="background:'rgba(184,134,11,0.05)'"] {
+  background: rgba(139,105,20,0.06) !important;
+}
+
+/* Status badge adjustments for light mode */
+html.theme-light .status-badge-bg {
+  filter: brightness(1.1);
+}
