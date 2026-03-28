@@ -5,8 +5,18 @@ import PublicLayout from '@/components/layout/PublicLayout'
 import { formatPrice } from '@/lib/tokens'
 import { useCart } from '@/context/CartContext'
 import {
-  calculateTotal, canvasOptions, frameOptions, glassOptions, sizeOptions,
+  calculateTotal, canvasOptions, frameOptions, glassOptions,
 } from '@/lib/customArtwork'
+
+const customArtworkSizeOptions = [
+  { label: '12 × 16', width: 12, height: 16 },
+  { label: '16 × 20', width: 16, height: 20 },
+  { label: '16 × 24', width: 16, height: 24 },
+  { label: '20 × 24', width: 20, height: 24 },
+  { label: '20 × 30', width: 20, height: 30 },
+  { label: '24 × 36', width: 24, height: 36 },
+  { label: '36 × 48', width: 36, height: 48 },
+]
 
 const canvasPreviewMap: Record<string, string> = {
   normal: '/canvas/normal_canvas.jpeg', smooth: '/canvas/smooth_canvas.jpeg',
@@ -26,7 +36,7 @@ const labelStyle: React.CSSProperties = { fontSize: 11, letterSpacing: '0.12em',
 
 export default function CustomArtworkPage() {
   const { addArtwork } = useCart()
-  const [selectedSize, setSelectedSize] = useState<(typeof sizeOptions)[number] | null>(null)
+  const [selectedSize, setSelectedSize] = useState<(typeof customArtworkSizeOptions)[number] | null>(null)
   const [area, setArea] = useState(0)
   const [canvasId, setCanvasId] = useState('none')
   const [frameId, setFrameId] = useState('none')
@@ -42,7 +52,7 @@ export default function CustomArtworkPage() {
   const frame = frameOptions.find(o => o.id === frameId) ?? frameOptions[0]
   const glass = glassOptions.find(o => o.id === glassId) ?? glassOptions[0]
 
-  const isCompactSize = selectedSize ? ['8 × 10', '10 × 12', '12 × 16', '16 × 20'].includes(selectedSize.label) : false
+  const isCompactSize = selectedSize ? ['12 × 16', '16 × 20'].includes(selectedSize.label) : false
   const isLargeSize = selectedSize ? (selectedSize.width > 15 && selectedSize.height > 20) || (selectedSize.width > 20 && selectedSize.height > 15) : false
 
   const frameDisabledMap = useMemo(() => {
@@ -115,7 +125,7 @@ export default function CustomArtworkPage() {
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(-45deg,rgba(184,134,11,0.04) 0,rgba(184,134,11,0.04) 1px,transparent 1px,transparent 20px)' }}/>
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold-primary)', marginBottom: 12 }}>Commission</div>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 'clamp(40px,5vw,72px)', fontWeight: 500, marginBottom: 16 }}>Custom <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Artwork</span></h1>
+          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 'clamp(40px,5vw,68px)', marginBottom: 20 }}>Customise Your Photos Into <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Stunning Artwork</span></h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 16, maxWidth: 480 }}>Hand-sketched in charcoal or pencil. Sizes measured in inches. Fully customisable.</p>
         </div>
       </div>
@@ -125,17 +135,28 @@ export default function CustomArtworkPage() {
           {/* Left: builder */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border-color)' }}>
 
+            {/* Artwork Sizes Image */}
+            <div style={{ background: 'var(--bg-card)', padding: '36px 32px', textAlign: 'center' }}>
+              <img src="/artwork_sizes.png" alt="Artwork Sizes" style={{ maxWidth: '80%', height: 'auto', borderRadius: '8px' }} />
+            </div>
+
             {/* Size */}
             <div style={{ background: 'var(--bg-card)', padding: '36px 32px' }}>
               {sectionHead('Step 01', 'Select Art Size')}
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.7 }}>Artwork beautifully crafted, hand sketch, authentically modified with charcoal. Sizes vary and are measured in inches.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }} className="size-grid">
-                {sizeOptions.map(size => (
+                {customArtworkSizeOptions.map(size => (
                   <div key={size.label} onClick={() => { setSelectedSize(size); setArea(size.width * size.height) }} className="card-hover" style={{ cursor: 'pointer', padding: '18px 10px', textAlign: 'center', background: selectedSize?.label === size.label ? 'rgba(184,134,11,0.08)' : 'var(--bg-dark)', border: selectedSize?.label === size.label ? '1px solid var(--gold-primary)' : '1px solid var(--border-color)', transition: 'all 0.2s' }}>
                     <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20, color: selectedSize?.label === size.label ? 'var(--gold-light)' : 'var(--text-primary)', marginBottom: 4 }}>{size.label}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{size.width}×{size.height} in</div>
                   </div>
                 ))}
+              </div>
+              <div style={{ marginTop: 20, textAlign: 'center' }}>
+                <a href="https://wa.link/7o6g5r" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '12px 24px', fontSize: 14, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none', borderRadius: '4px', transition: 'all 0.3s' }}>
+                  Custom Size →
+                </a>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Need a size not listed? Contact us on WhatsApp for custom dimensions.</p>
               </div>
             </div>
 

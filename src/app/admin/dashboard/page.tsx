@@ -1,20 +1,85 @@
 'use client'
 import { useState } from 'react'
 import { mockOrders, mockProducts, mockDashboardStats } from '@/lib/mockData'
-import { formatPrice, formatDate, getStatusColor, getStatusLabel } from '@/lib/tokens'
+import { formatPrice, formatDate } from '@/lib/tokens'
 import { StatusBadge } from '@/components/ui'
 import Link from 'next/link'
 
-function StatCard({ icon, label, value, sub, alert, color }: { icon:string; label:string; value:string|number; sub:string; alert?:boolean; color?:string }) {
+interface StatCardProps {
+  icon: string
+  label: string
+  value: string | number
+  sub: string
+  trend?: { value: number; positive: boolean }
+  color?: string
+}
+
+function StatCard({ icon, label, value, sub, trend, color = '#3B82F6' }: StatCardProps) {
   return (
-    <div style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))`, border: '1px solid rgba(184,134,11,0.15)', borderRadius: '8px', padding: '24px', transition: 'all 0.3s ease', cursor: 'pointer' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span style={{ fontSize: 28 }}>{icon}</span>
-        {alert && <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--gold-accent)', animation: 'pulse 2s infinite' }}/>}
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(6, 182, 212, 0.05))',
+      border: '1px solid rgba(59, 130, 246, 0.15)',
+      borderRadius: '12px',
+      padding: '24px',
+      transition: 'all 0.3s ease',
+      cursor: 'pointer',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 100% 0%, ${color}08 0%, transparent 70%)`, pointerEvents: 'none' }} />
+      
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, position: 'relative', zIndex: 1 }}>
+        <div style={{ width: 48, height: 48, background: `${color}15`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+          {icon}
+        </div>
+        {trend && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: trend.positive ? '#10B981' : '#EF4444' }}>
+            {trend.positive ? '↑' : '↓'} {trend.value}%
+          </div>
+        )}
       </div>
-      <h3 style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 8 }}>{label}</h3>
-      <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, fontWeight: 700, color: color || 'var(--gold-light)', lineHeight: 1, marginBottom: 10 }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>{sub}</div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#94A3B8', fontWeight: 600, marginBottom: 8 }}>
+          {label}
+        </div>
+        <div style={{
+          fontFamily: '"Inter", sans-serif',
+          fontSize: 32,
+          fontWeight: 700,
+          color: color,
+          marginBottom: 8,
+          letterSpacing: '-0.02em',
+        }}>
+          {value}
+        </div>
+        <div style={{ fontSize: 13, color: '#64748B' }}>{sub}</div>
+      </div>
+    </div>
+  )
+}
+
+function MetricBox({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
+  return (
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.03)',
+      border: '1px solid rgba(59, 130, 246, 0.1)',
+      borderRadius: '10px',
+      padding: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      transition: 'all 0.2s',
+    }}>
+      <div style={{ fontSize: 24 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: color }}>
+          {value}
+        </div>
+      </div>
     </div>
   )
 }
@@ -30,178 +95,402 @@ export default function AdminDashboardPage() {
     return matchSearch && matchStatus
   })
 
-  // Simulate CSV export
   const exportCSV = () => {
     const rows = ['Order,Customer,Email,Service,Price,Status,Payment,Date', ...filtered.map(o => `${o.orderNumber},${o.customerName},${o.customerEmail},${o.service},${o.price},${o.status},${o.paymentStatus},${o.createdAt}`)]
-    const blob = new Blob([rows.join('\n')], { type:'text/csv' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click()
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'orders.csv'
+    a.click()
   }
 
   return (
-    <div style={{ padding: '32px 40px', background: 'linear-gradient(135deg, rgba(184,134,11,0.02) 0%, rgba(184,134,11,0.01) 100%)' }}>
+    <div style={{ background: 'linear-gradient(180deg, #0F172A 0%, #1A2847 100%)', minHeight: '100vh', flex: 1 }}>
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        @keyframes shine {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
-        .stat-card:hover {
-          background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)) !important;
-          border-color: rgba(184,134,11,0.25) !important;
+        .stat-card-hover {
+          transition: all 0.3s ease;
+        }
+        .stat-card-hover:hover {
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.1)) !important;
+          border-color: rgba(59, 130, 246, 0.25) !important;
           transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+        }
+        .order-row {
+          transition: all 0.2s;
         }
         .order-row:hover {
-          background: rgba(184,134,11,0.04) !important;
-        }
-        .prod-card:hover {
-          background: rgba(184,134,11,0.05) !important;
+          background: rgba(59, 130, 246, 0.08) !important;
         }
         @media (max-width: 900px) {
-          div[style*="padding: 32px 40px"] {
-            padding: 20px 24px;
-          }
           .stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 12px !important;
           }
           .prod-grid {
             grid-template-columns: 1fr !important;
-            gap: 12px !important;
-          }
-          .admin-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .admin-filters {
-            flex-direction: column;
-            width: 100%;
-          }
-          .admin-filters input,
-          .admin-filters select,
-          .admin-filters button {
-            width: 100% !important;
-          }
-          .orders-table-wrapper {
-            overflow-x: auto;
-          }
-          h1 {
-            font-size: 28px !important;
           }
         }
         @media (max-width: 640px) {
-          div[style*="padding: 32px 40px"] {
-            padding: 12px 16px;
-          }
           .stats-grid {
             grid-template-columns: 1fr !important;
-            gap: 10px !important;
           }
-          h1 {
-            font-size: 20px !important;
+          .admin-filters {
+            flex-direction: column;
           }
-          h2 {
-            font-size: 18px !important;
-          }
-          .admin-header {
-            padding-bottom: 16px;
-            gap: 8px;
-          }
-          .order-header-cols {
-            grid-template-columns: 1.2fr 1fr 0.8fr !important;
-            min-width: auto !important;
-            font-size: 10px !important;
-          }
-          .order-row-cols {
-            grid-template-columns: 1.2fr 1fr 0.8fr !important;
-            min-width: auto !important;
-            padding: 12px 12px !important;
-            font-size: 11px !important;
-          }
-          .order-row-cols > div:nth-child(4),
-          .order-row-cols > div:nth-child(5),
-          .order-row-cols > div:nth-child(6) {
-            display: none;
-          }
-          .order-header-cols > div:nth-child(4),
-          .order-header-cols > div:nth-child(5),
-          .order-header-cols > div:nth-child(6) {
-            display: none;
+          .admin-filters input, .admin-filters select, .admin-filters button {
+            width: 100% !important;
           }
         }
       `}</style>
-      
-      {/* Header */}
-      <div className="admin-header" style={{ marginBottom: 36, paddingBottom: 24, borderBottom: '1px solid rgba(184,134,11,0.1)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 6 }}>Admin Panel</div>
-          <h1 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 36, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Dashboard Overview</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Monitor orders, payments, and business metrics</p>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--gold-light)', padding: '8px 16px', background: 'rgba(184,134,11,0.08)', borderRadius: '4px', border: '1px solid rgba(184,134,11,0.2)' }}>Big Ed Admin</div>
-      </div>
 
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 44 }} className="stats-grid">
-        <StatCard icon="📦" label="Total Orders" value={stats.totalOrders} sub="All time" color="var(--gold-light)"/>
-        <StatCard icon="⏳" label="Pending Orders" value={stats.pendingOrders} sub="Awaiting action" alert color="#FFB347"/>
-        <StatCard icon="✓" label="Completed" value={stats.completedOrders} sub="Successfully delivered" color="#51CF66"/>
-        <StatCard icon="₦" label="Total Revenue" value={formatPrice(stats.totalRevenue)} sub="Verified payments" color="var(--gold-light)"/>
-        <StatCard icon="💳" label="Pending Payments" value={stats.pendingPayments} sub="Need verification" alert color="#FF6B6B"/>
-        <StatCard icon="👥" label="Customers" value={stats.totalCustomers} sub="Total registered" color="#4ECDC4"/>
-      </div>
-
-      {/* Orders Table */}
-      <div style={{ marginBottom: 44 }}>
-        <div className="admin-filters" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 26, fontWeight: 600, marginBottom: 2 }}>All Orders</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Manage and track all customer orders</p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <input placeholder="Search orders…" value={search} onChange={e => setSearch(e.target.value)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,134,11,0.15)', padding: '10px 14px', borderRadius: '4px', color: 'var(--text-primary)', fontFamily: '"Libre Franklin",sans-serif', fontSize: 12, outline: 'none', width: 240, transition: 'all 0.2s' }}/>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,134,11,0.15)', padding: '10px 12px', borderRadius: '4px', color: 'var(--text-primary)', fontFamily: '"Libre Franklin",sans-serif', fontSize: 12, outline: 'none', appearance: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-              {['All','pending','confirmed','in_progress','review','completed','cancelled'].map(s=><option key={s} value={s}>{s==='All'?'All Statuses':s.replace('_',' ')}</option>)}
-            </select>
-            <button onClick={exportCSV} style={{ padding: '10px 18px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'transparent', border: '1px solid rgba(184,134,11,0.2)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif', borderRadius: '4px', transition: 'all 0.2s' }}>📥 Export CSV</button>
-          </div>
-        </div>
-        <div className="orders-table-wrapper" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,134,11,0.15)', borderRadius: '8px', overflow: 'hidden' }}>
-          <div className="order-header-cols" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 0.8fr 1fr 1fr 1fr', padding: '16px 24px', borderBottom: '1px solid rgba(184,134,11,0.1)', background: 'rgba(184,134,11,0.05)', minWidth: 800 }}>
-            {['Order','Customer','Amount','Status','Payment','Delivery'].map(h=><div key={h} style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, color: 'var(--text-muted)' }}>{h}</div>)}
-          </div>
-          {filtered.map(order => (
-            <div key={order.id} className="order-row order-row-cols" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 0.8fr 1fr 1fr 1fr', padding: '16px 24px', borderBottom: '1px solid rgba(184,134,11,0.08)', alignItems: 'center', minWidth: 800, transition: 'background 0.2s' }}>
-              <div><div style={{ fontSize: 12, fontWeight: 600 }}>{order.orderNumber}</div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{formatDate(order.createdAt)}</div></div>
-              <div><div style={{ fontSize: 12, fontWeight: 500 }}>{order.customerName}</div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{order.customerEmail}</div></div>
-              <div style={{ fontSize: 13, color: 'var(--gold-light)', fontWeight: 600 }}>{formatPrice(order.price)}</div>
-              <StatusBadge status={order.status}/>
-              <StatusBadge status={order.paymentStatus}/>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDate(order.estimatedDelivery)}</div>
-            </div>
-          ))}
-          {filtered.length === 0 && <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>No orders match your search criteria.</div>}
-        </div>
-      </div>
-
-      {/* Products Quick View */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 26, fontWeight: 600, marginBottom: 2 }}>Featured Products</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Stock status and pricing overview</p>
-          </div>
-          <Link href="/admin/products" style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-primary)', fontWeight: 600 }}>Manage All →</Link>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="prod-grid">
-          {mockProducts.slice(0,6).map(p => (
-            <div key={p.id} className="prod-card" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', border: '1px solid rgba(184,134,11,0.15)', borderRadius: '8px', padding: '20px', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.3s ease' }}>
-              <div style={{ width: 48, height: 48, background: 'rgba(184,134,11,0.1)', border: '1px solid rgba(184,134,11,0.2)', borderRadius: '6px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🖼️</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--gold-light)', fontWeight: 500 }}>{formatPrice(p.price)}</div>
+      {/* Main Content */}
+      <div style={{ padding: '40px' }}>
+        {/* Header Section */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 32 }}>
+            <div>
+              <div style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#64748B', fontWeight: 600, marginBottom: 12 }}>
+                📊 Dashboard
               </div>
-              <span style={{ fontSize: 10, padding: '4px 10px', background: p.inStock?'rgba(81,207,102,0.15)':'rgba(255,107,107,0.15)', color: p.inStock?'#51CF66':'#FF6B6B', border: `1px solid ${p.inStock?'rgba(81,207,102,0.3)':'rgba(255,107,107,0.3)'}`, borderRadius: '3px', flexShrink: 0, fontWeight: 600 }}>{p.inStock?'In Stock':'Out'}</span>
+              <h1 style={{
+                fontSize: 40,
+                fontWeight: 700,
+                color: '#E2E8F0',
+                marginBottom: 8,
+                letterSpacing: '-0.02em',
+              }}>
+                Business Control Center
+              </h1>
+              <p style={{ fontSize: 15, color: '#94A3B8', lineHeight: 1.6 }}>
+                Real-time overview of orders, revenue, and customer activity
+              </p>
             </div>
-          ))}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+            }}>
+              <span style={{ fontSize: 18 }}>🟢</span>
+              <div>
+                <div style={{ fontSize: 11, color: '#10B981', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  System Status
+                </div>
+                <div style={{ fontSize: 12, color: '#10B981' }}>All systems operational</div>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Bars */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <MetricBox label="Orders Pending" value={stats.pendingOrders} icon="⏳" color="#F59E0B" />
+            <MetricBox label="Active Customers" value={stats.totalCustomers} icon="👥" color="#06B6D4" />
+            <MetricBox label="Pending Payments" value={stats.pendingPayments} icon="💳" color="#F59E0B" />
+            <MetricBox label="Completed Orders" value={stats.completedOrders} icon="✓" color="#10B981" />
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 48 }} className="stats-grid">
+          <div className="stat-card-hover">
+            <StatCard
+              icon="📦"
+              label="Total Orders"
+              value={stats.totalOrders}
+              sub="Lifetime"
+              trend={{ value: 12, positive: true }}
+              color="#3B82F6"
+            />
+          </div>
+          <div className="stat-card-hover">
+            <StatCard
+              icon="⏳"
+              label="Pending Orders"
+              value={stats.pendingOrders}
+              sub="Need attention"
+              trend={{ value: 5, positive: false }}
+              color="#F59E0B"
+            />
+          </div>
+          <div className="stat-card-hover">
+            <StatCard
+              icon="✓"
+              label="Completed"
+              value={stats.completedOrders}
+              sub="Successfully delivered"
+              trend={{ value: 8, positive: true }}
+              color="#10B981"
+            />
+          </div>
+          <div className="stat-card-hover">
+            <StatCard
+              icon="₦"
+              label="Total Revenue"
+              value={formatPrice(stats.totalRevenue)}
+              sub="Verified payments"
+              trend={{ value: 18, positive: true }}
+              color="#3B82F6"
+            />
+          </div>
+          <div className="stat-card-hover">
+            <StatCard
+              icon="💳"
+              label="Pending Payments"
+              value={stats.pendingPayments}
+              sub="Awaiting verification"
+              trend={{ value: 3, positive: false }}
+              color="#F59E0B"
+            />
+          </div>
+          <div className="stat-card-hover">
+            <StatCard
+              icon="👥"
+              label="Total Customers"
+              value={stats.totalCustomers}
+              sub="Registered users"
+              trend={{ value: 15, positive: true }}
+              color="#06B6D4"
+            />
+          </div>
+        </div>
+
+        {/* Orders Section */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{
+              fontSize: 24,
+              fontWeight: 700,
+              color: '#E2E8F0',
+              marginBottom: 8,
+            }}>
+              Order Management
+            </h2>
+            <p style={{ fontSize: 14, color: '#94A3B8' }}>
+              Monitor and manage all customer orders in real-time
+            </p>
+          </div>
+
+          {/* Filters */}
+          <div className="admin-filters" style={{
+            display: 'flex',
+            gap: 12,
+            marginBottom: 24,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}>
+            <input
+              placeholder="Search by order ID or customer name…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#E2E8F0',
+                fontFamily: '"Inter", sans-serif',
+                fontSize: 13,
+                outline: 'none',
+                flex: 1,
+                minWidth: 280,
+                transition: 'all 0.2s',
+              }}
+            />
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              style={{
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#E2E8F0',
+                fontFamily: '"Inter", sans-serif',
+                fontSize: 13,
+                outline: 'none',
+                appearance: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {['All', 'pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled'].map(s => (
+                <option key={s} value={s} style={{ background: '#1E293B' }}>
+                  {s === 'All' ? 'All Statuses' : s.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={exportCSV}
+              style={{
+                padding: '12px 20px',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.2))',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#3B82F6',
+                cursor: 'pointer',
+                fontFamily: '"Inter", sans-serif',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+              }}
+            >
+              📥 Export
+            </button>
+          </div>
+
+          {/* Orders Table */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.8)',
+            border: '1px solid rgba(59, 130, 246, 0.1)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1.4fr 1fr 1fr 1fr 1.2fr',
+              gap: 16,
+              padding: '16px 24px',
+              borderBottom: '1px solid rgba(59, 130, 246, 0.1)',
+              background: 'liner-gradient(90deg, rgba(59, 130, 246, 0.05), rgba(6, 182, 212, 0.05))',
+            }}>
+              {['Order ID', 'Customer', 'Amount', 'Status', 'Payment', 'Est. Delivery'].map(h => (
+                <div key={h} style={{
+                  fontSize: 11,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  color: '#64748B',
+                }}>
+                  {h}
+                </div>
+              ))}
+            </div>
+
+            {filtered.map(order => (
+              <div
+                key={order.id}
+                className="order-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.2fr 1.4fr 1fr 1fr 1fr 1.2fr',
+                  gap: 16,
+                  padding: '16px 24px',
+                  borderBottom: '1px solid rgba(59, 130, 246, 0.05)',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#E2E8F0' }}>{order.orderNumber}</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>{formatDate(order.createdAt)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#E2E8F0' }}>{order.customerName}</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{order.customerEmail}</div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#3B82F6' }}>{formatPrice(order.price)}</div>
+                <StatusBadge status={order.status} />
+                <StatusBadge status={order.paymentStatus} />
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>{formatDate(order.estimatedDelivery)}</div>
+              </div>
+            ))}
+
+            {filtered.length === 0 && (
+              <div style={{ padding: '60px 24px', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
+                No orders match your search criteria.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Products Section */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div>
+              <h2 style={{
+                fontSize: 24,
+                fontWeight: 700,
+                color: '#E2E8F0',
+                marginBottom: 8,
+              }}>
+                Featured Products
+              </h2>
+              <p style={{ fontSize: 14, color: '#94A3B8' }}>Top selling items and inventory status</p>
+            </div>
+            <Link href="/admin/products" style={{
+              fontSize: 12,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: '#3B82F6',
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}>
+              View All Products →
+            </Link>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }} className="prod-grid">
+            {mockProducts.slice(0, 6).map(p => (
+              <div
+                key={p.id}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(6, 182, 212, 0.05))',
+                  border: '1px solid rgba(59, 130, 246, 0.15)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  background: `linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.2))`,
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '10px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 24,
+                }}>
+                  🖼️
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#E2E8F0', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#3B82F6', fontWeight: 600 }}>{formatPrice(p.price)}</div>
+                </div>
+                <div style={{
+                  fontSize: 11,
+                  padding: '6px 12px',
+                  background: p.inStock ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  color: p.inStock ? '#10B981' : '#EF4444',
+                  border: `1px solid ${p.inStock ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                  borderRadius: '6px',
+                  flexShrink: 0,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}>
+                  {p.inStock ? 'In Stock' : 'Out'}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

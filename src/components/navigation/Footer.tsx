@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { FaFacebookF, FaWhatsapp } from 'react-icons/fa'
+import { SiTiktok } from 'react-icons/si'
 
 export default function Footer() {
   return (
@@ -13,8 +15,14 @@ export default function Footer() {
               Hand-drawn portraits that tell the stories of people you love. Traditional artistry for the modern world.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
-              {['ig', 'wa', '𝕏', 'fb'].map(s => (
-                <a key={s} href="#" style={{ width: 36, height: 36, border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--text-muted)', transition: 'all 0.3s' }}>{s}</a>
+              {[
+                { icon: <SiTiktok />, href: 'https://www.tiktok.com/@big_ed_001?_r=1&_t=ZS-94yuIxdKHOG' },
+                { icon: <FaFacebookF />, href: 'https://www.facebook.com/share/17CbeP583L/' },
+                { icon: <FaWhatsapp />, href: 'https://wa.link/7o6g5r' }
+              ].map(({ icon, href }, index) => (
+                <a key={index} href={href} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--gold-light)', transition: 'all 0.3s' }}>
+                  {icon}
+                </a>
               ))}
             </div>
           </div>

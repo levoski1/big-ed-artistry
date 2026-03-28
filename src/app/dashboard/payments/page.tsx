@@ -59,8 +59,8 @@ export default function PaymentsPage() {
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>Available payment banks</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                   {[
-                    { id: 'uba', label: 'UBA', accountNumber: '2269928796' },
-                    { id: 'opay', label: 'Opay', accountNumber: '6112656157' },
+                    // { id: 'uba', label: 'UBA', accountNumber: '2269928796' },
+                    // { id: 'opay', label: 'Opay', accountNumber: '6112656157' },
                     { id: 'keystone', label: 'Keystone', accountNumber: '6047068634' },
                     { id: 'fairmoney', label: 'Fairmoney', accountNumber: '8155487017' },
                   ].map(bank => (

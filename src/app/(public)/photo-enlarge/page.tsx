@@ -90,7 +90,7 @@ export default function PhotoEnlargePage() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:80, alignItems:'center' }} className="enl-hero">
             <div>
               <div style={{ fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', color:'var(--gold-primary)', marginBottom:12 }}>Service 02</div>
-              <h1 style={{ fontFamily:'"Cormorant Garamond",serif', fontSize:'clamp(40px,5vw,68px)', marginBottom:20 }}>Turn Your Photos Into <span style={{ color:'var(--gold-light)', fontStyle:'italic' }}>Stunning Artwork</span></h1>
+              <h1 style={{ fontFamily:'"Cormorant Garamond",serif', fontSize:'clamp(40px,5vw,68px)', marginBottom:20 }}>Your Story, <span style={{ color:'var(--gold-light)', fontStyle:'italic' }}>Beautifully Brought to Life</span></h1>
               <p style={{ color:'var(--text-secondary)', lineHeight:1.9, marginBottom:32, fontSize:15 }}>Upload your favourite photo and we enlarge it into a premium wall art piece. Same canvas, frame, and glass options as Custom Artwork — but with a faster 1–2 week turnaround.</p>
               <div style={{ display:'flex', gap:32, paddingTop:20, borderTop:'1px solid var(--border-color)' }}>
                 {[['📸','Upload First','Start with your photo'],['⚡','1–2 Weeks','Faster turnaround'],['🖼️','Full Custom','Canvas · Frame · Glass']].map(([icon,t,s])=>(

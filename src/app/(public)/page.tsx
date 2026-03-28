@@ -45,7 +45,7 @@ export default function HomePage() {
                 <span style={{ fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-muted)' }}>Hand-Drawn · Charcoal Artist · Ships Worldwide</span>
               </div>
               <h1 className="animate-fade-up delay-100" style={{ fontFamily:'"Cormorant Garamond",serif', fontSize:'clamp(44px,5.5vw,84px)', fontWeight:500, lineHeight:1.08, marginBottom:24 }}>
-                Custom Art<br/>That <span className="gold-shimmer">Tells Your</span><br/><em style={{ fontStyle:'italic', color:'var(--text-secondary)' }}>Story</em>
+                Transform Your<br/>Memories Into <span className="gold-shimmer">Timeless Art</span><br/><em style={{ fontStyle:'italic', color:'var(--text-secondary)' }}></em>
               </h1>
               <p className="animate-fade-up delay-200" style={{ fontSize:16, color:'var(--text-secondary)', maxWidth:460, marginBottom:40, lineHeight:1.85 }}>
                 Handcrafted charcoal and pencil portraits from your photos. Every stroke drawn by Big Ed — from commission to doorstep delivery.

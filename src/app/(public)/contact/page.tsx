@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { SectionTag } from '@/components/ui'
+import { FaFacebookF, FaWhatsapp } from 'react-icons/fa'
+import { SiTiktok } from 'react-icons/si'
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name:'', email:'', phone:'', service:'', message:'' })
@@ -119,6 +121,22 @@ export default function ContactPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Social Media */}
+              <div style={{ marginBottom:32 }}>
+                <h3 style={{ fontFamily:'"Cormorant Garamond",serif', fontSize:24, marginBottom:16 }}>Follow Big Ed</h3>
+                <div style={{ display:'flex', gap:12 }}>
+                  {[
+                    { icon: <SiTiktok />, href: 'https://www.tiktok.com/@big_ed_001?_r=1&_t=ZS-94yuIxdKHOG', label: 'TikTok' },
+                    { icon: <FaFacebookF />, href: 'https://www.facebook.com/share/17CbeP583L/', label: 'Facebook' },
+                    { icon: <FaWhatsapp />, href: 'https://wa.link/7o6g5r', label: 'WhatsApp' }
+                  ].map(({ icon, href, label }, index) => (
+                    <a key={index} href={href} target="_blank" rel="noopener noreferrer" style={{ width: 40, height: 40, border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--gold-light)', transition: 'all 0.3s', textDecoration: 'none' }} title={label}>
+                      {icon}
+                    </a>
+                  ))}
+                </div>
               </div>
 
               {/* FAQ */}
