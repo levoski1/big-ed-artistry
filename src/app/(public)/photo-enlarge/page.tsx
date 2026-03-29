@@ -191,12 +191,15 @@ export default function PhotoEnlargePage() {
                   </button>
                 ))}
               </div>
-              {writeUpType === 'yes'
-                ? <textarea style={{ ...fieldStyle, resize:'none', minHeight:90 }} placeholder="Your custom caption…" value={customMessage} onChange={e => setCustomMessage(e.target.value)}/>
-                : <select style={{ ...fieldStyle, appearance:'none' }} value={occasion} onChange={e => setOccasion(e.target.value)}>
-                    {['Birthday','Wedding','Anniversary','Memorial','Graduation','Christmas',"Mother's Day",'Other'].map(o=><option key={o}>{o}</option>)}
-                  </select>
-              }
+              {writeUpType === 'yes' && (
+                <textarea style={{ ...fieldStyle, resize:'none', minHeight:90, marginBottom:16 }} placeholder="Your custom caption…" value={customMessage} onChange={e => setCustomMessage(e.target.value)}/>
+              )}
+              <div>
+                <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-muted)', marginBottom:8, display:'block' }}>Select Occasion</label>
+                <select style={{ ...fieldStyle, appearance:'none' }} value={occasion} onChange={e => setOccasion(e.target.value)}>
+                  {['Birthday','Wedding','Anniversary','Memorial','Graduation','Christmas',"Mother's Day",'Other'].map(o=><option key={o}>{o}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* CTA */}

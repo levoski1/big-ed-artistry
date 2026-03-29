@@ -201,16 +201,15 @@ export default function CustomArtworkPage() {
                   </button>
                 ))}
               </div>
-              {writeUpType === 'yes' ? (
-                <textarea style={{ ...fieldStyle, resize: 'none', minHeight: 100 }} placeholder="Enter your custom message or caption…" value={customMessage} onChange={e => setCustomMessage(e.target.value)}/>
-              ) : (
-                <div>
-                  <label style={labelStyle}>Select Occasion</label>
-                  <select style={{ ...fieldStyle, appearance: 'none' }} value={occasion} onChange={e => setOccasion(e.target.value)}>
-                    {['Birthday', 'Wedding', 'Anniversary', 'Memorial', 'Graduation', 'Christmas', 'Mother\'s Day', 'Other'].map(o => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
+              {writeUpType === 'yes' && (
+                <textarea style={{ ...fieldStyle, resize: 'none', minHeight: 100, marginBottom: 20 }} placeholder="Enter your custom message or caption…" value={customMessage} onChange={e => setCustomMessage(e.target.value)}/>
               )}
+              <div>
+                <label style={labelStyle}>Select Occasion</label>
+                <select style={{ ...fieldStyle, appearance: 'none' }} value={occasion} onChange={e => setOccasion(e.target.value)}>
+                  {['Birthday', 'Wedding', 'Anniversary', 'Memorial', 'Graduation', 'Christmas', 'Mother\'s Day', 'Other'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Upload */}
