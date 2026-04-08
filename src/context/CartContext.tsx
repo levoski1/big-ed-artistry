@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useCallback, useContext, useEffect, useReducer, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useState, type ReactNode } from 'react'
 import type { CartOrder } from '@/lib/customArtwork'
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -126,6 +126,7 @@ const CartContext = createContext<CartContextValue | null>(null)
 // ─── Provider ─────────────────────────────────────────────────────────────
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial)
+  const [hydrated, setHydrated] = useState(false)
 
   // Hydrate from localStorage
   useEffect(() => {
@@ -136,10 +137,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'HYDRATE', state: saved })
       }
     } catch { /* ignore */ }
+    setHydrated(true)
   }, [])
 
-  // Persist to localStorage whenever cart changes
+  // Persist to localStorage — only after hydration to avoid overwriting saved data
   useEffect(() => {
+    if (!hydrated) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         artworkOrders: state.artworkOrders,
@@ -147,7 +150,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ratings: state.ratings,
       }))
     } catch { /* ignore */ }
-  }, [state.artworkOrders, state.storeItems, state.ratings])
+  }, [hydrated, state.artworkOrders, state.storeItems, state.ratings])
 
   // Auto-dismiss toast
   useEffect(() => {

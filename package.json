@@ -7,12 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:login": "supabase login",
-    "db:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
-    "db:migrate": "supabase db push --project-ref $SUPABASE_PROJECT_REF",
-    "db:backup": "supabase db dump --project-ref $SUPABASE_PROJECT_REF -f supabase/backups/backup_$(date +%Y%m%d_%H%M%S).sql",
-    "db:backup:data": "supabase db dump --project-ref $SUPABASE_PROJECT_REF --data-only -f supabase/backups/data_$(date +%Y%m%d_%H%M%S).sql",
-    "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts"
+    "db:login": "npx supabase login",
+    "db:link": "npx supabase link --project-ref $SUPABASE_PROJECT_REF",
+    "db:migrate": "npx supabase db push",
+    "db:backup": "pg_dump $DATABASE_URL -f supabase/backups/backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:backup:data": "pg_dump $DATABASE_URL --data-only -f supabase/backups/data_$(date +%Y%m%d_%H%M%S).sql",
+    "db:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",
@@ -29,6 +29,7 @@
     "autoprefixer": "^10.4.17",
     "dotenv-cli": "^11.0.0",
     "postcss": "^8.4.35",
+    "supabase": "^2.84.10",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

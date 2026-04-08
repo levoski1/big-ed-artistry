@@ -60,9 +60,15 @@ export function getStatusColor(status: string): string {
     review: '#A69F94',
     completed: '#4A7C59',
     cancelled: '#8B3A3A',
+    // legacy
     unpaid: '#8B3A3A',
     pending_verification: '#C9A227',
     paid: '#4A7C59',
+    // DB payment_status values
+    NOT_PAID: '#8B3A3A',
+    PARTIALLY_PAID: '#C9A227',
+    FULLY_PAID: '#4A7C59',
+    // receipt status
     verified: '#4A7C59',
     rejected: '#8B3A3A',
   }
@@ -77,9 +83,15 @@ export function getStatusLabel(status: string): string {
     review: 'Under Review',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    // legacy
     unpaid: 'Unpaid',
     pending_verification: 'Verifying',
     paid: 'Paid',
+    // DB payment_status values
+    NOT_PAID: 'Not Paid',
+    PARTIALLY_PAID: 'Partial',
+    FULLY_PAID: 'Paid',
+    // receipt status
     verified: 'Verified',
     rejected: 'Rejected',
   }

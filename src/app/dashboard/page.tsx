@@ -1,16 +1,18 @@
-import { mockOrders } from '@/lib/mockData'
+import { getCurrentUser } from '@/app/actions/auth'
+import { getMyOrders } from '@/app/actions/orders'
 import DashboardPageContent from './DashboardPageContent'
 
-export default function DashboardPage() {
-  const recentOrders = mockOrders.slice(0, 4)
-  const pendingPayment = mockOrders.filter(o => o.paymentStatus === 'pending_verification').length
-  const inProgress = mockOrders.filter(o => o.status === 'in_progress').length
-  const completedCount = mockOrders.filter(o => o.status === 'completed').length
+export default async function DashboardPage() {
+  const [user, orders] = await Promise.all([getCurrentUser(), getMyOrders().catch(() => [])])
+
+  const pendingPayment = orders.filter(o => o.payment_status === 'NOT_PAID').length
+  const inProgress = orders.filter(o => o.status === 'in_progress').length
+  const completedCount = orders.filter(o => o.status === 'completed').length
 
   return (
     <DashboardPageContent
-      recentOrders={recentOrders}
-      allOrders={mockOrders}
+      user={user}
+      orders={orders}
       pendingPayment={pendingPayment}
       inProgress={inProgress}
       completedCount={completedCount}

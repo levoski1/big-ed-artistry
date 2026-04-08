@@ -9,13 +9,16 @@ const BUCKET_MAP: Record<UploadType, string> = {
 }
 
 export async function uploadFile(
-  file: File,
+  formData: FormData,
   fileType: UploadType,
   orderItemId?: string
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
+
+  const file = formData.get('file') as File
+  if (!file) throw new Error('No file provided')
 
   const bucket = BUCKET_MAP[fileType]
   const ext = file.name.split('.').pop()
@@ -52,10 +55,10 @@ export async function uploadFile(
   return upload
 }
 
-export async function uploadArtworkReference(file: File, orderItemId?: string) {
-  return uploadFile(file, 'artwork_reference', orderItemId)
+export async function uploadPaymentReceipt(formData: FormData) {
+  return uploadFile(formData, 'payment_receipt')
 }
 
-export async function uploadPaymentReceipt(file: File) {
-  return uploadFile(file, 'payment_receipt')
+export async function uploadArtworkReference(formData: FormData, orderItemId?: string) {
+  return uploadFile(formData, 'artwork_reference', orderItemId)
 }

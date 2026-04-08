@@ -21,8 +21,37 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — keeps the user logged in across tab reloads
-  await supabase.auth.getUser()
+  // Use getSession() here — it reads from the cookie without acquiring the
+  // navigator lock, avoiding contention with concurrent server action getUser() calls.
+  const { data: { session } } = await supabase.auth.getSession()
+  const { pathname } = request.nextUrl
+
+  // Redirect unauthenticated users away from protected routes
+  if (!session && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
+    const loginUrl = pathname.startsWith('/admin')
+      ? new URL('/admin', request.url)
+      : new URL('/login', request.url)
+    loginUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (session && (pathname === '/login' || pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Admin route — check role from profile (no extra getUser needed)
+  if (session && pathname.startsWith('/admin') && pathname !== '/admin') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
 
   return supabaseResponse
 }

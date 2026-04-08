@@ -1,15 +1,37 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FormGroup, Input, GoldLine } from '@/components/ui'
+import { register } from '@/app/actions/auth'
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!firstName || !lastName || !email || !password || !confirm) { setError('Please fill in all required fields.'); return }
+    if (password !== confirm) { setError('Passwords do not match.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (!agreed) { setError('Please agree to the terms.'); return }
     setLoading(true)
-    setTimeout(() => { setLoading(false); setDone(true) }, 1200)
+    setError('')
+    try {
+      await register({ email, password, full_name: `${firstName} ${lastName}`.trim(), phone: phone || undefined })
+      setDone(true)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Registration failed.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -41,32 +63,40 @@ export default function RegisterPage() {
         {done ? (
           <div style={{ textAlign: 'center', maxWidth: 400 }}>
             <div style={{ fontSize: 48, marginBottom: 20 }}>✦</div>
-            <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36, marginBottom: 16 }}>Account Created</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.8 }}>Welcome to Big Ed Artistry. Your account is ready. You can now track orders, upload payments, and commission artwork.</p>
-            <Link href="/dashboard" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)' }}>Go to Dashboard →</Link>
+            <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36, marginBottom: 16 }}>Check Your Email</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.8 }}>
+              We sent a confirmation link to <strong style={{ color: 'var(--gold-light)' }}>{email}</strong>. Click it to activate your account, then sign in.
+            </p>
+            <Link href="/login" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)' }}>Go to Sign In →</Link>
           </div>
         ) : (
           <div style={{ width: '100%', maxWidth: 420 }}>
             <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, marginBottom: 8 }}>Create Account</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 36 }}>Join to track orders, upload payments, and more.</p>
 
+            {error && (
+              <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171', fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <FormGroup label="First Name"><Input placeholder="First name" /></FormGroup>
-                <FormGroup label="Last Name"><Input placeholder="Last name" /></FormGroup>
+                <FormGroup label="First Name"><Input placeholder="First name" value={firstName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)} /></FormGroup>
+                <FormGroup label="Last Name"><Input placeholder="Last name" value={lastName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} /></FormGroup>
               </div>
-              <FormGroup label="Email Address"><Input type="email" placeholder="your@email.com" /></FormGroup>
-              <FormGroup label="Phone / WhatsApp"><Input type="tel" placeholder="+234 800 000 0000" /></FormGroup>
-              <FormGroup label="Password"><Input type="password" placeholder="Choose a password (min. 8 chars)" /></FormGroup>
-              <FormGroup label="Confirm Password"><Input type="password" placeholder="Repeat your password" /></FormGroup>
+              <FormGroup label="Email Address"><Input type="email" placeholder="your@email.com" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} /></FormGroup>
+              <FormGroup label="Phone / WhatsApp (optional)"><Input type="tel" placeholder="+234 800 000 0000" value={phone} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} /></FormGroup>
+              <FormGroup label="Password"><Input type="password" placeholder="Min. 8 characters" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} /></FormGroup>
+              <FormGroup label="Confirm Password"><Input type="password" placeholder="Repeat your password" value={confirm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirm(e.target.value)} /></FormGroup>
 
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 0' }}>
-                <input type="checkbox" id="terms" style={{ marginTop: 3, accentColor: 'var(--gold-primary)', flexShrink: 0 }} />
+                <input type="checkbox" id="terms" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 3, accentColor: 'var(--gold-primary)', flexShrink: 0 }} />
                 <label htmlFor="terms" style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   I agree to the{' '}
-                  <Link href="#" style={{ color: 'var(--gold-light)' }}>Terms of Service</Link>
+                  <Link href="/terms-and-conditions" style={{ color: 'var(--gold-light)' }}>Terms of Service</Link>
                   {' '}and{' '}
-                  <Link href="#" style={{ color: 'var(--gold-light)' }}>Privacy Policy</Link>
+                  <Link href="/refund-policy" style={{ color: 'var(--gold-light)' }}>Privacy Policy</Link>
                 </label>
               </div>
 

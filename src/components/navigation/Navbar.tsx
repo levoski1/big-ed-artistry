@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useTheme } from '@/context/ThemeContext'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 const navLinks = [
   { label: 'About',   href: '/about'   },
@@ -89,9 +91,21 @@ function ThemeToggle() {
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
   const pathname  = usePathname()
   const { totalCount } = useCart()
   const { isDark } = useTheme()
+
+  useEffect(() => {
+    const supabase = createClient()
+    // Use getSession() — reads from cookie without acquiring the navigator lock,
+    // avoiding contention with concurrent getUser() calls in server actions.
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -146,9 +160,17 @@ export default function Navbar() {
 
           {/* Desktop right actions */}
           <div style={{ display:'flex', alignItems:'center', gap:14 }} className="nav-actions-desktop">
-            <Link href="/login" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-secondary)', padding:'10px 0', transition:'color 0.3s' }}>
-              Login
-            </Link>
+            {user ? (
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <Link href="/dashboard" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--gold-light)', padding:'10px 0', transition:'color 0.3s' }}>
+                  Dashboard
+                </Link>
+              </div>
+            ) : (
+              <Link href="/login" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-secondary)', padding:'10px 0', transition:'color 0.3s' }}>
+                Login
+              </Link>
+            )}
             {/* Theme toggle */}
             <ThemeToggle />
             <CartIcon count={totalCount} />
