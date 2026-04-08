@@ -55,8 +55,9 @@ Thumbs.db
 .cache
 .next/cache
 
-# Misc
-*.pem
+# Supabase backups (never commit these)
+supabase/backups/*.sql
+
 
 # Debug
 npm-debug.log*
