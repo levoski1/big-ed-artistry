@@ -27,21 +27,25 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users away from protected routes
-  if (!session && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
-    const loginUrl = pathname.startsWith('/admin')
-      ? new URL('/admin', request.url)
-      : new URL('/login', request.url)
+  // /admin is the login page — always accessible
+  if (!session && pathname.startsWith('/dashboard')) {
+    const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect authenticated users away from auth pages
+  // Protect /admin/* sub-routes (not /admin itself which is the login page)
+  if (!session && pathname.startsWith('/admin/')) {
+    return NextResponse.redirect(new URL('/admin', request.url))
+  }
+
+  // Redirect authenticated users away from public auth pages
   if (session && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Admin route — check role from profile (no extra getUser needed)
-  if (session && pathname.startsWith('/admin') && pathname !== '/admin') {
+  // Protect /admin/* — must be admin role
+  if (session && pathname.startsWith('/admin/')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

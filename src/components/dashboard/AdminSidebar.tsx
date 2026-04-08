@@ -7,8 +7,9 @@ const navItems = [
   { icon: '📊', label: 'Dashboard', href: '/admin/dashboard', color: '#3B82F6' },
   { icon: '📦', label: 'Orders', href: '/admin/orders', color: '#06B6D4' },
   { icon: '🛍️', label: 'Products', href: '/admin/products', color: '#8B5CF6' },
+  { icon: '🖼️', label: 'Gallery', href: '/admin/gallery', color: '#F59E0B' },
+  { icon: '💳', label: 'Payments', href: '/admin/payments', color: '#10B981' },
   { icon: '👥', label: 'Customers', href: '/admin/customers', color: '#EC4899' },
-  { icon: '💳', label: 'Payments', href: '/admin/settings', color: '#F59E0B' },
   { icon: '⚙️', label: 'Settings', href: '/admin/settings', color: '#6B7280' },
 ]
 

@@ -1,0 +1,202 @@
+'use client'
+import { useState, useTransition } from 'react'
+import { formatPrice } from '@/lib/tokens'
+import { createProduct, updateProduct, deleteProduct } from '@/app/actions/products'
+import type { Database } from '@/lib/types/database'
+
+type Product = Database['public']['Tables']['products']['Row']
+type Category = Database['public']['Enums']['product_category']
+
+const CATEGORIES: Category[] = ['print', 'canvas', 'bundle', 'frame']
+
+const inputStyle = { width: '100%', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '10px 12px', color: 'var(--text-primary)', fontFamily: '"Libre Franklin",sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }
+const labelStyle: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }
+
+export default function AdminProductsContent({ products: initial }: { products: Product[] }) {
+  const [products, setProducts] = useState(initial)
+  const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<Product | null>(null)
+  const [draft, setDraft] = useState<Partial<Product & { slug: string }>>({})
+  const [error, setError] = useState('')
+  const [isPending, startTransition] = useTransition()
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.category.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const openAdd = () => {
+    setEditing(null)
+    setDraft({ in_stock: true, featured: false, rating: 4, category: 'print' })
+    setShowForm(true)
+    setError('')
+  }
+
+  const openEdit = (p: Product) => {
+    setEditing(p)
+    setDraft(p)
+    setShowForm(true)
+    setError('')
+  }
+
+  const closeForm = () => { setShowForm(false); setEditing(null); setDraft({}); setError('') }
+
+  const handleSave = () => {
+    if (!draft.name || !draft.price || !draft.category) { setError('Name, price and category are required.'); return }
+    setError('')
+    startTransition(async () => {
+      try {
+        if (editing) {
+          const updated = await updateProduct(editing.id, {
+            name: draft.name,
+            slug: draft.slug ?? draft.name!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+            description: draft.description ?? null,
+            price: Number(draft.price),
+            original_price: draft.original_price ? Number(draft.original_price) : null,
+            category: draft.category as Category,
+            badge: draft.badge ?? null,
+            in_stock: draft.in_stock ?? true,
+            featured: draft.featured ?? false,
+          })
+          setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+        } else {
+          const created = await createProduct({
+            name: draft.name!,
+            slug: draft.slug ?? draft.name!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+            description: draft.description ?? null,
+            price: Number(draft.price),
+            original_price: draft.original_price ? Number(draft.original_price) : null,
+            category: draft.category as Category,
+            badge: draft.badge ?? null,
+            in_stock: draft.in_stock ?? true,
+            featured: draft.featured ?? false,
+          })
+          setProducts(prev => [created, ...prev])
+        }
+        closeForm()
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Save failed.')
+      }
+    })
+  }
+
+  const handleDelete = (id: string) => {
+    if (!confirm('Delete this product?')) return
+    startTransition(async () => {
+      try {
+        await deleteProduct(id)
+        setProducts(prev => prev.filter(p => p.id !== id))
+        if (editing?.id === id) closeForm()
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Delete failed.')
+      }
+    })
+  }
+
+  const handleToggle = (id: string, field: 'in_stock' | 'featured') => {
+    const product = products.find(p => p.id === id)
+    if (!product) return
+    startTransition(async () => {
+      try {
+        const updated = await updateProduct(id, { [field]: !product[field] })
+        setProducts(prev => prev.map(p => p.id === id ? updated : p))
+      } catch { /* ignore */ }
+    })
+  }
+
+  return (
+    <div style={{ padding: 36, minHeight: '100vh' }}>
+      <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
+          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>Product <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Management</span></h1>
+        </div>
+        <button onClick={openAdd} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>+ Add Product</button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+        <input placeholder="Search products…" value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{filtered.length} products</div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+        {/* Product table */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+            {['Product', 'Price', 'Category', 'Stock', 'Featured', 'Actions'].map(h => (
+              <div key={h} style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+            ))}
+          </div>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>No products yet. Add your first product.</div>
+          ) : filtered.map(p => (
+            <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 80px 80px 100px', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', background: editing?.id === p.id ? 'rgba(184,134,11,0.04)' : 'transparent' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{p.name}</div>
+                {p.badge && <span style={{ fontSize: 10, padding: '2px 8px', background: 'rgba(184,134,11,0.15)', color: 'var(--gold-light)', letterSpacing: '0.08em' }}>{p.badge}</span>}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: 'var(--gold-light)' }}>{formatPrice(p.price)}</div>
+                {p.original_price && <div style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{formatPrice(p.original_price)}</div>}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{p.category}</div>
+              <button onClick={() => handleToggle(p.id, 'in_stock')} style={{ fontSize: 11, padding: '4px 10px', background: p.in_stock ? 'rgba(74,124,89,0.15)' : 'rgba(139,58,58,0.15)', color: p.in_stock ? 'var(--success)' : 'var(--danger)', border: `1px solid ${p.in_stock ? 'rgba(74,124,89,0.3)' : 'rgba(139,58,58,0.3)'}`, cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
+                {p.in_stock ? 'In Stock' : 'Out'}
+              </button>
+              <button onClick={() => handleToggle(p.id, 'featured')} style={{ fontSize: 11, padding: '4px 10px', background: p.featured ? 'rgba(184,134,11,0.15)' : 'transparent', color: p.featured ? 'var(--gold-light)' : 'var(--text-muted)', border: '1px solid var(--border-color)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
+                {p.featured ? '★ Yes' : '☆ No'}
+              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => openEdit(p)} style={{ fontSize: 11, padding: '5px 10px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Edit</button>
+                <button onClick={() => handleDelete(p.id)} style={{ fontSize: 11, padding: '5px 10px', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Del</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Add/Edit form */}
+        {showForm && (
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, position: 'sticky', top: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24 }}>{editing ? 'Edit Product' : 'Add Product'}</h3>
+              <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            </div>
+            {error && <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171', fontSize: 12 }}>{error}</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div><label style={labelStyle}>Name *</label><input style={inputStyle} value={draft.name ?? ''} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Product name" /></div>
+              <div><label style={labelStyle}>Slug (auto-generated if empty)</label><input style={inputStyle} value={draft.slug ?? ''} onChange={e => setDraft(d => ({ ...d, slug: e.target.value }))} placeholder="product-slug" /></div>
+              <div><label style={labelStyle}>Description</label><textarea style={{ ...inputStyle, resize: 'none', minHeight: 80 }} value={draft.description ?? ''} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Product description" /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div><label style={labelStyle}>Price (₦) *</label><input type="number" style={inputStyle} value={draft.price ?? ''} onChange={e => setDraft(d => ({ ...d, price: Number(e.target.value) }))} placeholder="25000" /></div>
+                <div><label style={labelStyle}>Original Price (₦)</label><input type="number" style={inputStyle} value={draft.original_price ?? ''} onChange={e => setDraft(d => ({ ...d, original_price: e.target.value ? Number(e.target.value) : null }))} placeholder="30000" /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Category *</label>
+                  <select style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }} value={draft.category ?? 'print'} onChange={e => setDraft(d => ({ ...d, category: e.target.value as Category }))}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div><label style={labelStyle}>Badge</label><input style={inputStyle} value={draft.badge ?? ''} onChange={e => setDraft(d => ({ ...d, badge: e.target.value || null }))} placeholder="Sale, Popular…" /></div>
+              </div>
+              <div style={{ display: 'flex', gap: 20 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={draft.in_stock ?? true} onChange={e => setDraft(d => ({ ...d, in_stock: e.target.checked }))} style={{ accentColor: 'var(--gold-primary)' }} />
+                  In Stock
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={draft.featured ?? false} onChange={e => setDraft(d => ({ ...d, featured: e.target.checked }))} style={{ accentColor: 'var(--gold-primary)' }} />
+                  Featured
+                </label>
+              </div>
+              <button onClick={handleSave} disabled={isPending} style={{ padding: '12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: isPending ? 'var(--bg-dark)' : 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: isPending ? 'var(--text-muted)' : 'var(--text-on-gold)', border: 'none', cursor: isPending ? 'not-allowed' : 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
+                {isPending ? 'Saving…' : editing ? 'Save Changes' : 'Add Product'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -12,7 +12,8 @@
     "db:migrate": "npx supabase db push",
     "db:backup": "pg_dump $DATABASE_URL -f supabase/backups/backup_$(date +%Y%m%d_%H%M%S).sql",
     "db:backup:data": "pg_dump $DATABASE_URL --data-only -f supabase/backups/data_$(date +%Y%m%d_%H%M%S).sql",
-    "db:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts"
+    "db:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts",
+    "admin:create": "npx tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",

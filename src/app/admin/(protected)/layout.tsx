@@ -2,9 +2,9 @@ import { type ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
+import AdminSidebar from '@/components/dashboard/AdminSidebar'
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function AdminProtectedLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,12 +20,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   )
 
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  if (!session) redirect('/admin')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single()
+
+  if (profile?.role !== 'admin') redirect('/dashboard')
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
-      <DashboardSidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <AdminSidebar />
+      <div style={{ flex: 1, overflow: 'auto' }}>
         {children}
       </div>
     </div>
