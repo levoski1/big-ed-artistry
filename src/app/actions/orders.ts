@@ -37,22 +37,37 @@ export async function createOrder(
 
 export async function getMyOrders() {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data: orders, error } = await supabase
     .from('orders')
-    .select('*, order_items(*)')
+    .select('*')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return data
+
+  const { data: items } = await supabase.from('order_items').select('*')
+
+  return (orders ?? []).map(o => ({
+    ...o,
+    order_items: (items ?? []).filter(i => i.order_id === o.id),
+  }))
 }
 
 export async function getAllOrders() {
-  const supabase = createAdminClient()
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+  const { data: orders, error } = await admin
     .from('orders')
-    .select('*, profiles(full_name, email, phone), order_items(*)')
+    .select('*')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return data
+
+  // Fetch profiles and items separately
+  const { data: profiles } = await admin.from('profiles').select('id, full_name, email, phone')
+  const { data: items } = await admin.from('order_items').select('*')
+
+  return (orders ?? []).map(o => ({
+    ...o,
+    profiles: (profiles ?? []).find(p => p.id === o.user_id) ?? null,
+    order_items: (items ?? []).filter(i => i.order_id === o.id),
+  }))
 }
 
 export async function updateOrderStatus(

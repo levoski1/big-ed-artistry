@@ -38,13 +38,23 @@ export async function getAdminStats() {
 
 export async function getAllCustomers() {
   const admin = createAdminClient()
-  const { data, error } = await admin
+  const { data: profiles, error } = await admin
     .from('profiles')
-    .select('*, orders(id, order_number, total_amount, amount_paid, status, payment_status, created_at)')
+    .select('*')
     .eq('role', 'customer')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return data
+
+  // Fetch orders separately and attach
+  const { data: orders } = await admin
+    .from('orders')
+    .select('id, user_id, order_number, total_amount, amount_paid, status, payment_status, created_at')
+    .order('created_at', { ascending: false })
+
+  return (profiles ?? []).map(p => ({
+    ...p,
+    orders: (orders ?? []).filter(o => o.user_id === p.id),
+  }))
 }
 
 export async function updateOrderPaymentStatus(

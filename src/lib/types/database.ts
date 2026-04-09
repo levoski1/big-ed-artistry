@@ -1,5 +1,5 @@
-// Supabase database types
-// Regenerate with: npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/lib/types/database.ts
+// Supabase database types — manually maintained
+// Regenerate with: npm run db:types
 
 export type UserRole = 'customer' | 'admin'
 export type ProductCategory = 'print' | 'canvas' | 'bundle' | 'frame'
@@ -256,6 +256,52 @@ export interface Database {
         Update: {
           file_url?: string
           order_item_id?: string | null
+        }
+        Relationships: []
+      }
+      gallery_items: {
+        Row: {
+          id: string
+          title: string
+          medium: string
+          size: string | null
+          year: number
+          category: string
+          image_url: string
+          storage_path: string
+          description: string | null
+          featured: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          medium?: string
+          size?: string | null
+          year?: number
+          category?: string
+          image_url: string
+          storage_path: string
+          description?: string | null
+          featured?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          medium?: string
+          size?: string | null
+          year?: number
+          category?: string
+          image_url?: string
+          storage_path?: string
+          description?: string | null
+          featured?: boolean
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }

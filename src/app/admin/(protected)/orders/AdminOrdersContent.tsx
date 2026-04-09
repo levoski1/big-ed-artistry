@@ -6,7 +6,7 @@ import { updateOrderStatus } from '@/app/actions/orders'
 import type { Database } from '@/lib/types/database'
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
-  profiles?: { full_name: string; email: string; phone: string | null } | null
+  profiles?: { id: string; full_name: string; email: string; phone: string | null } | null
   order_items?: Database['public']['Tables']['order_items']['Row'][]
 }
 

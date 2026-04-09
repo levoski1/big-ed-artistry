@@ -50,10 +50,18 @@ export async function rejectPayment(paymentId: string, rejection_reason: string)
 
 export async function getAllPayments() {
   const admin = createAdminClient()
-  const { data, error } = await admin
+  const { data: payments, error } = await admin
     .from('payments')
-    .select('*, profiles(full_name, email), orders(order_number)')
+    .select('*')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return data
+
+  const { data: profiles } = await admin.from('profiles').select('id, full_name, email')
+  const { data: orders } = await admin.from('orders').select('id, order_number')
+
+  return (payments ?? []).map(p => ({
+    ...p,
+    profiles: (profiles ?? []).find(pr => pr.id === p.user_id) ?? null,
+    orders: (orders ?? []).find(o => o.id === p.order_id) ?? null,
+  }))
 }

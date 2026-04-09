@@ -5,7 +5,11 @@ import { StatusBadge } from '@/components/ui'
 import type { Database } from '@/lib/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
-  orders?: Database['public']['Tables']['orders']['Row'][]
+  orders: {
+    id: string; user_id: string; order_number: string
+    total_amount: number; amount_paid: number
+    status: string; payment_status: string; created_at: string
+  }[]
 }
 
 export default function AdminCustomersContent({ customers }: { customers: Profile[] }) {

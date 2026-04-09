@@ -56,10 +56,10 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
           const created = await createGalleryItem(formData, {
             title: draft.title!,
             medium: draft.medium ?? 'Pencil on Paper',
-            size: draft.size,
+            size: draft.size ?? undefined,
             year: draft.year ?? new Date().getFullYear(),
             category: draft.category!,
-            description: draft.description,
+            description: draft.description ?? undefined,
             featured: draft.featured ?? false,
           })
           setItems(prev => [created, ...prev])

@@ -2,22 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/types/database'
 
-export interface GalleryItem {
-  id: string
-  title: string
-  medium: string
-  size: string | null
-  year: number
-  category: string
-  image_url: string
-  storage_path: string
-  description: string | null
-  featured: boolean
-  sort_order: number
-  created_at: string
-  updated_at: string
-}
+type GalleryRow = Database['public']['Tables']['gallery_items']['Row']
+type GalleryInsert = Database['public']['Tables']['gallery_items']['Insert']
+type GalleryUpdate = Database['public']['Tables']['gallery_items']['Update']
+
+export type GalleryItem = GalleryRow
 
 export async function getGalleryItems(options?: { category?: string; featured?: boolean }) {
   const supabase = await createClient()
@@ -59,23 +50,28 @@ export async function createGalleryItem(
     .from('gallery-images')
     .getPublicUrl(storagePath)
 
+  const insert: GalleryInsert = {
+    title: meta.title,
+    medium: meta.medium,
+    size: meta.size ?? null,
+    year: meta.year,
+    category: meta.category,
+    description: meta.description ?? null,
+    featured: meta.featured ?? false,
+    image_url: urlData.publicUrl,
+    storage_path: storagePath,
+  }
+
   const { data, error } = await admin
     .from('gallery_items')
-    .insert({
-      ...meta,
-      image_url: urlData.publicUrl,
-      storage_path: storagePath,
-    })
+    .insert(insert)
     .select()
     .single()
   if (error) throw new Error(error.message)
   return data as GalleryItem
 }
 
-export async function updateGalleryItem(
-  id: string,
-  updates: Partial<Pick<GalleryItem, 'title' | 'medium' | 'size' | 'year' | 'category' | 'description' | 'featured' | 'sort_order'>>
-) {
+export async function updateGalleryItem(id: string, updates: GalleryUpdate) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('gallery_items')
@@ -90,7 +86,6 @@ export async function updateGalleryItem(
 export async function deleteGalleryItem(id: string) {
   const admin = createAdminClient()
 
-  // Get storage path first
   const { data: item } = await admin
     .from('gallery_items')
     .select('storage_path')

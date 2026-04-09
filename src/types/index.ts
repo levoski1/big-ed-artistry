@@ -28,7 +28,7 @@ export interface Order {
   referenceImages: string[]
   price: number
   status: 'pending' | 'confirmed' | 'in_progress' | 'review' | 'completed' | 'cancelled'
-  paymentStatus: 'NOT_PAID' | 'PARTIALLY_PAID' | 'FULLY_PAID'
+  paymentStatus: 'NOT_PAID' | 'PARTIALLY_PAID' | 'FULLY_PAID' | 'paid' | 'pending_verification' | 'unpaid'
   progressImages: string[]
   createdAt: string
   updatedAt: string
