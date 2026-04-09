@@ -63,11 +63,14 @@ export async function updateOrderPaymentStatus(
   amountPaid?: number
 ) {
   const admin = createAdminClient()
-  const updates: Record<string, unknown> = { payment_status: paymentStatus }
-  if (amountPaid !== undefined) updates.amount_paid = amountPaid
+  const updates = {
+    payment_status: paymentStatus,
+    ...(amountPaid !== undefined ? { amount_paid: amountPaid } : {}),
+  }
   const { data, error } = await admin
     .from('orders')
-    .update(updates)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(updates as any)
     .eq('id', orderId)
     .select()
     .single()
