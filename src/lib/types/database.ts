@@ -305,6 +305,53 @@ export interface Database {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          id: string
+          user_id: string
+          user_name: string
+          message: string
+          rating: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_name: string
+          message: string
+          rating: number
+          created_at?: string
+        }
+        Update: {
+          message?: string
+          rating?: number
+        }
+        Relationships: []
+      }
+    }
+      reviews: {
+        Row: {
+          id: string
+          user_id: string
+          user_name: string
+          message: string
+          rating: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_name: string
+          message: string
+          rating: number
+          created_at?: string
+        }
+        Update: {
+          message?: string
+          rating?: number
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {

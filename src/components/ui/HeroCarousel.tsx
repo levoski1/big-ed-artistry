@@ -1,0 +1,59 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+
+const HERO_IMAGES = [
+  { src: '/Home/workdone1.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/workdone2.jpeg', alt: 'Artwork by Big Ed' },
+]
+
+export default function HeroCarousel() {
+  const [current, setCurrent] = useState(0)
+  const [fading, setFading] = useState(false)
+
+  const goTo = useCallback((idx: number) => {
+    setFading(true)
+    setTimeout(() => {
+      setCurrent(idx)
+      setFading(false)
+    }, 400)
+  }, [])
+
+  const next = useCallback(() => goTo((current + 1) % HERO_IMAGES.length), [current, goTo])
+
+  useEffect(() => {
+    const t = setInterval(next, 4500)
+    return () => clearInterval(t)
+  }, [next])
+
+  const img = HERO_IMAGES[current]
+
+  return (
+    <div style={{ width: '100%', maxWidth: 440, margin: '0 auto', position: 'relative' }}>
+      <div style={{ position: 'relative', height: 480, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+        <img
+          src={img.src}
+          alt={img.alt}
+          style={{
+            width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+            opacity: fading ? 0 : 1,
+            transform: fading ? 'scale(1.04)' : 'scale(1)',
+            transition: 'opacity 0.4s ease, transform 0.4s ease',
+          }}
+        />
+        {/* Gradient overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,14,12,0.5) 0%, transparent 50%)' }} />
+
+        {/* Nav arrows */}
+        <button onClick={() => goTo((current - 1 + HERO_IMAGES.length) % HERO_IMAGES.length)} aria-label="Previous" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, background: 'rgba(15,14,12,0.65)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>←</button>
+        <button onClick={() => goTo((current + 1) % HERO_IMAGES.length)} aria-label="Next" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, background: 'rgba(15,14,12,0.65)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>→</button>
+      </div>
+
+      {/* Dot indicators */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+        {HERO_IMAGES.map((_, i) => (
+          <button key={i} onClick={() => goTo(i)} aria-label={`Slide ${i + 1}`} style={{ width: i === current ? 20 : 6, height: 6, borderRadius: 3, background: i === current ? 'var(--gold-primary)' : 'var(--border-color)', border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
+        ))}
+      </div>
+    </div>
+  )
+}
