@@ -161,15 +161,20 @@ export default function Navbar() {
           {/* Desktop right actions */}
           <div style={{ display:'flex', alignItems:'center', gap:14 }} className="nav-actions-desktop">
             {user ? (
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <>
                 <Link href="/dashboard" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--gold-light)', padding:'10px 0', transition:'color 0.3s' }}>
                   Dashboard
                 </Link>
-              </div>
+              </>
             ) : (
-              <Link href="/login" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-secondary)', padding:'10px 0', transition:'color 0.3s' }}>
-                Login
-              </Link>
+              <>
+                {/* <Link href="/login" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-secondary)', padding:'10px 0', transition:'color 0.3s' }}>
+                  Login
+                </Link> */}
+                <Link href="/login" style={{ fontSize:12, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--gold-light)', padding:'10px 16px', border:'1px solid var(--gold-dark)', transition:'color 0.3s' }}>
+                  LOGIN
+                </Link>
+              </>
             )}
             {/* Theme toggle */}
             <ThemeToggle />
@@ -207,7 +212,7 @@ export default function Navbar() {
       <div style={{
         position:'fixed', left:0, right:0, top:mobileMenuTop, bottom:0, zIndex:999,
         background:'var(--mobile-menu-bg)',
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:32,
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:28,
         opacity: menuOpen ? 1 : 0,
         pointerEvents: menuOpen ? 'all' : 'none',
         transition:'opacity 0.4s ease, background 0.35s ease',
@@ -221,14 +226,28 @@ export default function Navbar() {
             {link.label}
           </Link>
         ))}
-        <Link href="/custom-artwork" style={{
-          marginTop:16, padding:'14px 32px', fontSize:13, fontWeight:600,
-          letterSpacing:'0.12em', textTransform:'uppercase',
-          background:'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))',
-          color:'var(--text-on-gold)',
-        }}>
-          Order Artwork
-        </Link>
+
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, marginTop:8, paddingTop:24, borderTop:'1px solid var(--border-color)', width:'80%' }}>
+          {user ? (
+            <>
+              <Link href="/dashboard" style={{ width:'100%', textAlign:'center', padding:'14px 32px', fontSize:13, fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase', background:'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color:'var(--text-on-gold)' }}>
+                My Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" style={{ width:'100%', textAlign:'center', padding:'14px 32px', fontSize:13, fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase', background:'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color:'var(--text-on-gold)' }}>
+                Login
+              </Link>
+              <Link href="/register" style={{ width:'100%', textAlign:'center', padding:'13px 32px', fontSize:13, letterSpacing:'0.12em', textTransform:'uppercase', border:'1px solid var(--border-color)', color:'var(--text-secondary)' }}>
+                Sign Up
+              </Link>
+            </>
+          )}
+          <Link href="/custom-artwork" style={{ width:'100%', textAlign:'center', padding:'13px 32px', fontSize:13, letterSpacing:'0.12em', textTransform:'uppercase', border:'1px solid var(--gold-dark)', color:'var(--gold-light)' }}>
+            Order Artwork
+          </Link>
+        </div>
       </div>
 
       <style>{`

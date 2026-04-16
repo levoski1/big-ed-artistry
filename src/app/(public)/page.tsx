@@ -153,9 +153,7 @@ export default async function HomePage() {
       <section style={{ padding: '80px 0', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }} className="enl-grid">
-            <div style={{ height: 300, border: '1px solid var(--gold-dark)', overflow: 'hidden' }}>
-              <img src="/Home/sliders/photo_edit.jpeg" alt="Photo Enlargement Sample" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
+
             <div>
               <SectionTag>Service 02</SectionTag>
               <h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 'clamp(32px,4vw,52px)', marginBottom: 20 }}>Photo <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Enlargements</span></h2>
@@ -168,6 +166,9 @@ export default async function HomePage() {
                 ))}
               </div>
               <Link href="/photo-enlarge" style={{ display: 'inline-flex', padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Upload Your Photo →</Link>
+            </div>
+            <div style={{ height: 300, border: '1px solid var(--gold-dark)', overflow: 'hidden' }}>
+              <img src="/Home/sliders/photo_edit.jpeg" alt="Photo Enlargement Sample" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           </div>
         </div>
