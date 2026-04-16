@@ -1,19 +1,59 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { useCart } from '@/context/CartContext'
 import { formatPrice } from '@/lib/tokens'
+import { createClient } from '@/lib/supabase/client'
+
+function SignInModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 32, marginBottom: 12 }}>Sign In Required</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
+          You need to be signed in to proceed to checkout. Please sign in or create an account to continue.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/login?next=/checkout" style={{ padding: '13px 28px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Sign In</Link>
+          <Link href="/register?next=/checkout" style={{ padding: '13px 20px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Create Account</Link>
+        </div>
+        <button onClick={onClose} style={{ marginTop: 20, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Continue browsing</button>
+      </div>
+    </div>
+  )
+}
 
 export default function CartPage() {
   const { state, artworkTotal, storeTotal, grandTotal, totalCount, removeArtwork, removeStoreItem, setStoreQuantity } = useCart()
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [showSignIn, setShowSignIn] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data }) => setIsLoggedIn(!!data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsLoggedIn(!!session))
+    return () => subscription.unsubscribe()
+  }, [])
+
   if (!mounted) return null
+
   const isEmpty = state.artworkOrders.length === 0 && state.storeItems.length === 0
+
+  const handleCheckout = () => {
+    if (!isLoggedIn) { setShowSignIn(true); return }
+    router.push('/checkout')
+  }
 
   return (
     <PublicLayout>
+      {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
+
       <div style={{ paddingTop: 100, minHeight: '80vh' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 100px' }}>
           <div style={{ marginBottom: 40, paddingBottom: 28, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -27,8 +67,7 @@ export default function CartPage() {
               <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36, marginBottom: 16 }}>Your cart is empty</h2>
               <p style={{ color: 'var(--text-secondary)', marginBottom: 36 }}>Browse our store or commission a custom artwork to get started.</p>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Link href="/custom-artwork" style={{ padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Order Custom Art</Link>
-                <Link href="/store" style={{ padding: '14px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Browse Store</Link>
+                <Link href="/store" style={{ padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Browse Store</Link>
               </div>
             </div>
           ) : (
@@ -56,9 +95,7 @@ export default function CartPage() {
                             </div>
                           ))}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>Base ₦{order.basePrice.toLocaleString()} · Canvas ₦{order.canvasPrice.toLocaleString()} · Frame ₦{order.framePrice.toLocaleString()} · Glass ₦{order.glassPrice.toLocaleString()}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Configuration cannot be edited from cart.</span>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <button onClick={() => removeArtwork(order.id)} style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '5px 12px', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Remove</button>
                         </div>
                       </div>
@@ -104,12 +141,15 @@ export default function CartPage() {
                     <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 18 }}>Subtotal</span>
                     <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: 'var(--gold-light)' }}>{formatPrice(grandTotal)}</span>
                   </div>
-                  <Link href="/checkout" style={{ display: 'flex', justifyContent: 'center', padding: '15px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Proceed to Checkout →</Link>
+                  <button onClick={handleCheckout} style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '15px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
+                    {isLoggedIn ? 'Proceed to Checkout →' : '🔒 Sign In to Checkout'}
+                  </button>
+                  {!isLoggedIn && <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: 'var(--text-muted)' }}>Sign in required to place an order</div>}
                   <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: 'var(--text-muted)' }}>50% deposit accepted · Secure bank transfer</div>
                 </div>
                 <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  <Link href="/custom-artwork" style={{ textAlign: 'center', padding: '10px', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'block' }}>+ Artwork</Link>
                   <Link href="/store" style={{ textAlign: 'center', padding: '10px', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'block' }}>+ Products</Link>
+                  <Link href="/gallery" style={{ textAlign: 'center', padding: '10px', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'block' }}>Gallery</Link>
                 </div>
               </div>
             </div>

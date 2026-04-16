@@ -45,6 +45,7 @@ type CartAction =
   | { type: 'RATE_PRODUCT'; productId: string; rating: number }
   | { type: 'SET_TOAST'; message: string | null }
   | { type: 'HYDRATE'; state: Partial<CartState> }
+  | { type: 'CLEAR_CART' }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────
 function reducer(state: CartState, action: CartAction): CartState {
@@ -93,6 +94,9 @@ function reducer(state: CartState, action: CartAction): CartState {
     case 'RATE_PRODUCT':
       return { ...state, ratings: { ...state.ratings, [action.productId]: action.rating } }
 
+    case 'CLEAR_CART':
+      return { ...state, artworkOrders: [], storeItems: [] }
+
     case 'SET_TOAST':
       return { ...state, toast: action.message }
 
@@ -118,6 +122,7 @@ interface CartContextValue {
   removeStoreItem: (productId: string) => void
   setStoreQuantity: (productId: string, qty: number) => void
   rateProduct: (productId: string, rating: number) => void
+  clearCart: () => void
   dismissToast: () => void
 }
 
@@ -171,9 +176,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const setStoreQuantity = useCallback((productId: string, qty: number) => dispatch({ type: 'SET_STORE_QUANTITY', productId, quantity: qty }), [])
   const rateProduct = useCallback((productId: string, rating: number) => dispatch({ type: 'RATE_PRODUCT', productId, rating }), [])
   const dismissToast = useCallback(() => dispatch({ type: 'SET_TOAST', message: null }), [])
+  const clearCart = useCallback(() => dispatch({ type: 'CLEAR_CART' }), [])
 
   return (
-    <CartContext.Provider value={{ state, totalCount, grandTotal, artworkTotal, storeTotal, addArtwork, removeArtwork, addStoreItem, removeStoreItem, setStoreQuantity, rateProduct, dismissToast }}>
+    <CartContext.Provider value={{ state, totalCount, grandTotal, artworkTotal, storeTotal, addArtwork, removeArtwork, addStoreItem, removeStoreItem, setStoreQuantity, rateProduct, clearCart, dismissToast }}>
       {children}
       {/* Toast notification */}
       {state.toast && (

@@ -7,12 +7,13 @@ import type { Database } from '@/lib/types/database'
 type ProductInsert = Database['public']['Tables']['products']['Insert']
 type ProductUpdate = Database['public']['Tables']['products']['Update']
 
-export async function getProducts(options?: { featured?: boolean; category?: string }) {
+export async function getProducts(options?: { featured?: boolean; category?: string; limit?: number }) {
   const supabase = await createClient()
   let query = supabase.from('products').select('*').order('created_at', { ascending: false })
 
   if (options?.featured !== undefined) query = query.eq('featured', options.featured)
   if (options?.category) query = query.eq('category', options.category as ProductInsert['category'])
+  if (options?.limit) query = query.limit(options.limit)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
@@ -28,6 +29,23 @@ export async function getProductBySlug(slug: string) {
     .single()
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function uploadProductImage(formData: FormData): Promise<string> {
+  const admin = createAdminClient()
+  const file = formData.get('file') as File
+  if (!file) throw new Error('No file provided')
+
+  const ext = file.name.split('.').pop()
+  const storagePath = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+  const { error: uploadError } = await admin.storage
+    .from('product-images')
+    .upload(storagePath, file, { upsert: false })
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data } = admin.storage.from('product-images').getPublicUrl(storagePath)
+  return data.publicUrl
 }
 
 export async function createProduct(data: ProductInsert) {

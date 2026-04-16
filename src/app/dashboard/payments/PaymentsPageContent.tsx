@@ -7,8 +7,15 @@ import { submitPayment } from '@/app/actions/payments'
 import type { Database } from '@/lib/types/database'
 
 type Order = Database['public']['Tables']['orders']['Row']
+type Upload = Database['public']['Tables']['uploads']['Row']
 
-export default function PaymentsPageContent({ orders }: { orders: Order[] }) {
+interface Props {
+  orders: Order[]
+  paymentUploads: Upload[]
+  artworkUploads: Upload[]
+}
+
+export default function PaymentsPageContent({ orders, paymentUploads, artworkUploads }: Props) {
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full')
   const [amount, setAmount] = useState('')
@@ -22,6 +29,27 @@ export default function PaymentsPageContent({ orders }: { orders: Order[] }) {
   const selectedOrder = orders.find(o => o.id === selectedOrderId)
 
   const handleFile = (f: File) => setFile(f)
+
+  const handleOrderChange = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    const order = orders.find(o => o.id === orderId)
+    if (order) {
+      setAmount(paymentType === 'partial'
+        ? String(Math.ceil(order.amount_remaining * 0.5))
+        : String(order.amount_remaining)
+      )
+    }
+  }
+
+  const handlePaymentTypeChange = (type: 'full' | 'partial') => {
+    setPaymentType(type)
+    if (selectedOrder) {
+      setAmount(type === 'partial'
+        ? String(Math.ceil(selectedOrder.amount_remaining * 0.5))
+        : String(selectedOrder.amount_remaining)
+      )
+    }
+  }
 
   const handleSubmit = async () => {
     if (!selectedOrderId || !file) { setError('Please select an order and upload a receipt.'); return }
@@ -80,7 +108,7 @@ export default function PaymentsPageContent({ orders }: { orders: Order[] }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <FormGroup label="Select Order">
-              <Select value={selectedOrderId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedOrderId(e.target.value); setAmount('') }}>
+              <Select value={selectedOrderId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleOrderChange(e.target.value)}>
                 <option value="" disabled>Choose an order to pay for</option>
                 {unpaidOrders.map(o => (
                   <option key={o.id} value={o.id}>{o.order_number} — {formatPrice(o.total_amount)} (remaining: {formatPrice(o.amount_remaining)})</option>
@@ -89,20 +117,24 @@ export default function PaymentsPageContent({ orders }: { orders: Order[] }) {
             </FormGroup>
 
             <FormGroup label="Payment Type">
-              <Select value={paymentType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPaymentType(e.target.value as 'full' | 'partial')}>
+              <Select value={paymentType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePaymentTypeChange(e.target.value as 'full' | 'partial')}>
                 <option value="full">Full Payment</option>
                 <option value="partial">Partial Payment</option>
               </Select>
             </FormGroup>
 
-            <FormGroup label="Amount Paid (₦)">
+            <FormGroup label="Amount Paid (₦) — auto-filled">
               <input
                 type="number"
-                placeholder={selectedOrder ? `Max: ${selectedOrder.amount_remaining}` : 'Enter amount'}
+                readOnly
                 value={amount}
-                onChange={e => setAmount(e.target.value)}
-                style={{ width: '100%', padding: '12px 16px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: 14, fontFamily: '"Libre Franklin", sans-serif', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '12px 16px', background: 'rgba(184,134,11,0.06)', border: '1px solid rgba(184,134,11,0.3)', color: 'var(--gold-light)', fontSize: 14, fontFamily: '"Libre Franklin", sans-serif', outline: 'none', boxSizing: 'border-box', cursor: 'default', fontWeight: 600 }}
               />
+              {selectedOrder && amount && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                  {paymentType === 'partial' ? `50% of remaining balance (${formatPrice(selectedOrder.amount_remaining)})` : `Full remaining balance`}
+                </div>
+              )}
             </FormGroup>
 
             {/* Bank details */}
@@ -201,6 +233,46 @@ export default function PaymentsPageContent({ orders }: { orders: Order[] }) {
               </div>
             ))}
           </div>
+
+          {/* Payment receipts uploaded */}
+          {paymentUploads.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', padding: 28 }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16 }}>Your Payment Receipts</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {paymentUploads.map((u, i) => (
+                  <div key={u.id} style={{ border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                    <a href={u.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                      <img src={u.file_url} alt={`Receipt ${i + 1}`} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', display: 'block', background: 'var(--bg-dark)' }} />
+                      <div style={{ padding: '8px 12px', background: 'var(--bg-dark)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDate(u.created_at)}</span>
+                        <span style={{ fontSize: 11, color: 'var(--gold-light)' }}>View →</span>
+                      </div>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Artwork references uploaded */}
+          {artworkUploads.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', padding: 28 }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16 }}>Your Artwork References</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {artworkUploads.map((u, i) => (
+                  <div key={u.id} style={{ border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                    <a href={u.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                      <img src={u.file_url} alt={`Artwork ref ${i + 1}`} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', display: 'block', background: 'var(--bg-dark)' }} />
+                      <div style={{ padding: '8px 12px', background: 'var(--bg-dark)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.file_name}</span>
+                        <span style={{ fontSize: 11, color: 'var(--gold-light)' }}>View →</span>
+                      </div>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,13 @@ import { ThemeProvider } from '@/context/ThemeContext'
 export const metadata: Metadata = {
   title: 'Big Ed Artistry – Custom Hand-Drawn Art',
   description: 'Turn your photos into beautiful hand-drawn masterpieces. Custom pencil and charcoal portraits by Nigerian artist Big Ed.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/logo/biged_logo.png' },
+    ],
+    apple: '/logo/biged_logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

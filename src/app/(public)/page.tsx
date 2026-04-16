@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import PublicLayout from '@/components/layout/PublicLayout'
-import ProductCard from '@/components/ui/ProductCard'
 import TestimonialsSection from '@/components/ui/TestimonialsSection'
 import HeroCarousel from '@/components/ui/HeroCarousel'
 import { SectionTag, GoldLine } from '@/components/ui'
@@ -8,24 +7,15 @@ import { getGalleryItems } from '@/app/actions/gallery'
 import { getProducts } from '@/app/actions/products'
 import { getReviews } from '@/app/actions/reviews'
 import { createClient } from '@/lib/supabase/server'
+import { formatPrice } from '@/lib/tokens'
 import type { Database } from '@/lib/types/database'
 
 type Product = Database['public']['Tables']['products']['Row']
 
-function toStoreProduct(p: Product) {
-  return {
-    id: p.id, name: p.name, slug: p.slug,
-    description: p.description ?? '',
-    price: p.price, originalPrice: p.original_price ?? undefined,
-    category: p.category, badge: p.badge ?? undefined,
-    inStock: p.in_stock, featured: p.featured, rating: p.rating,
-  }
-}
-
 export default async function HomePage() {
   const [galleryItems, products, reviews, supabase] = await Promise.all([
-    getGalleryItems({ featured: true }).catch((): Awaited<ReturnType<typeof getGalleryItems>> => []),
-    getProducts({ featured: true }).catch((): Product[] => []),
+    getGalleryItems({ limit: 8 }).catch((): Awaited<ReturnType<typeof getGalleryItems>> => []),
+    getProducts({ limit: 8 }).catch((): Product[] => []),
     getReviews().catch(() => []),
     createClient(),
   ])
@@ -33,8 +23,8 @@ export default async function HomePage() {
   const { data: { session } } = await supabase.auth.getSession()
   const isLoggedIn = !!session
 
-  const featuredArtworks = galleryItems.slice(0, 5)
-  const featuredProducts = products.slice(0, 4)
+  const featuredArtworks = galleryItems.slice(0, 8)
+  const featuredProducts = products.slice(0, 8)
 
   return (
     <PublicLayout>
@@ -90,23 +80,28 @@ export default async function HomePage() {
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 48, flexWrap: 'wrap', gap: 16 }}>
               <div><SectionTag>Portfolio</SectionTag><h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 'clamp(32px,4vw,52px)' }}>Featured <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Artworks</span></h2></div>
-              <Link href="/gallery" style={{ padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Full Gallery →</Link>
+              <Link href="/gallery" style={{ padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>View All Gallery →</Link>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2 }} className="art-grid">
-              {featuredArtworks.map((art, i) => (
-                <Link key={art.id} href="/gallery" style={{ gridRow: i === 0 ? 'span 2' : undefined, display: 'block' }}>
-                  <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', height: i === 0 ? '100%' : undefined, minHeight: i === 0 ? 460 : 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    <img src={art.image_url} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top,rgba(15,14,12,0.95) 0%,transparent 70%)', padding: '20px 18px 18px' }}>
-                      <div style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: i === 0 ? 22 : 17, fontWeight: 500 }}>{art.title}</div>
-                      <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-light)', marginTop: 3 }}>{art.medium}{art.size ? ` · ${art.size}` : ''}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }} className="art-grid">
+              {featuredArtworks.map(art => (
+                <Link key={art.id} href="/gallery" style={{ display: 'block', textDecoration: 'none' }}>
+                  <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ height: 220, overflow: 'hidden' }}>
+                      <img src={art.image_url} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }} />
+                    </div>
+                    <div style={{ padding: '14px 16px' }}>
+                      <div style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 17, fontWeight: 500, marginBottom: 4, color: 'var(--text-primary)' }}>{art.title}</div>
+                      <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-primary)' }}>{art.medium}{art.size ? ` · ${art.size}` : ''} · {art.year}</div>
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
+            <div style={{ textAlign: 'center', marginTop: 40 }}>
+              <Link href="/gallery" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Browse Full Gallery →</Link>
+            </div>
           </div>
-          <style>{`@media(max-width:860px){.art-grid{grid-template-columns:1fr 1fr!important;}}`}</style>
+          <style>{`@media(max-width:1024px){.art-grid{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:540px){.art-grid{grid-template-columns:1fr!important;}}`}</style>
         </section>
       )}
 
@@ -128,8 +123,25 @@ export default async function HomePage() {
               </div>
               <Link href="/custom-artwork" style={{ display: 'inline-flex', padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Start Customising →</Link>
             </div>
-            <div style={{ height: 380, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-              <img src="/Home/workdone1.jpeg" alt="Custom artwork sample" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <div
+              style={{
+                height: 600,
+                background: 'var(--bg-dark)',
+                border: '1px solid var(--border-color)',
+                overflow: 'hidden'
+              }}
+            >
+              <img
+                src="/Home/sliders/artwork.jpeg"
+                alt="Custom artwork sample"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'top', // 👈 THIS fixes it
+                  display: 'block'
+                }}
+              />
             </div>
           </div>
         </div>
@@ -142,7 +154,7 @@ export default async function HomePage() {
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }} className="enl-grid">
             <div style={{ height: 300, border: '1px solid var(--gold-dark)', overflow: 'hidden' }}>
-              <img src="/Home/workdone1.jpeg" alt="Photo Enlargement Sample" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src="/Home/sliders/photo_edit.jpeg" alt="Photo Enlargement Sample" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <div>
               <SectionTag>Service 02</SectionTag>
@@ -168,10 +180,34 @@ export default async function HomePage() {
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 48, flexWrap: 'wrap', gap: 16 }}>
               <div><SectionTag>Store</SectionTag><h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 'clamp(32px,4vw,52px)' }}>Art Products <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>&amp; Prints</span></h2></div>
-              <Link href="/store" style={{ padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Shop All →</Link>
+              <Link href="/store" style={{ padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>View All Products →</Link>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }} className="products-grid">
-              {featuredProducts.map(p => <ProductCard key={p.id} product={toStoreProduct(p)} />)}
+              {featuredProducts.map(p => (
+                <div key={p.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ height: 200, background: 'var(--bg-dark)', overflow: 'hidden', position: 'relative' }}>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="40" height="40" viewBox="0 0 48 48" fill="none" style={{ opacity: 0.1 }}><rect x="8" y="8" width="32" height="32" stroke="#D4A84B" strokeWidth="1" /></svg>
+                      </div>
+                    )}
+                    {p.badge && <div style={{ position: 'absolute', top: 10, left: 10, padding: '3px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>{p.badge}</div>}
+                  </div>
+                  <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{p.category}</div>
+                    <div style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 17, color: 'var(--text-primary)', lineHeight: 1.2 }}>{p.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 8 }}>
+                      <span style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 18, color: 'var(--gold-light)' }}>{formatPrice(p.price)}</span>
+                      {p.original_price && <span style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{formatPrice(p.original_price)}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 40 }}>
+              <Link href="/store" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Browse All Products in Store →</Link>
             </div>
           </div>
           <style>{`@media(max-width:1024px){.products-grid{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:540px){.products-grid{grid-template-columns:1fr!important;}}`}</style>
@@ -222,7 +258,7 @@ export default async function HomePage() {
                   maxHeight: 420,
                   objectFit: 'contain',
                   objectPosition: 'top',
-                  background: '#000' // optional: fills empty space nicely
+                  background: '#000',
                 }}
               /> </div>
           </div>

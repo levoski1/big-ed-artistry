@@ -59,6 +59,7 @@ export interface Database {
           in_stock: boolean
           featured: boolean
           rating: number
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -74,6 +75,7 @@ export interface Database {
           in_stock?: boolean
           featured?: boolean
           rating?: number
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -88,6 +90,7 @@ export interface Database {
           in_stock?: boolean
           featured?: boolean
           rating?: number
+          image_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -305,30 +308,6 @@ export interface Database {
         }
         Relationships: []
       }
-      reviews: {
-        Row: {
-          id: string
-          user_id: string
-          user_name: string
-          message: string
-          rating: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          user_name: string
-          message: string
-          rating: number
-          created_at?: string
-        }
-        Update: {
-          message?: string
-          rating?: number
-        }
-        Relationships: []
-      }
-    }
       reviews: {
         Row: {
           id: string

@@ -16,7 +16,10 @@ export async function submitPayment(data: Omit<PaymentInsert, 'user_id'>) {
     .insert({ ...data, user_id: user.id })
     .select()
     .single()
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error('[submitPayment error]', error.message, error.details, error.hint)
+    throw new Error(error.message)
+  }
   return payment
 }
 
@@ -26,6 +29,16 @@ export async function verifyPayment(paymentId: string) {
   if (!user) throw new Error('Not authenticated')
 
   const admin = createAdminClient()
+
+  // Get the payment to know the order and amount
+  const { data: payment, error: fetchError } = await admin
+    .from('payments')
+    .select('*')
+    .eq('id', paymentId)
+    .single()
+  if (fetchError) throw new Error(fetchError.message)
+
+  // Mark payment as verified
   const { data, error } = await admin
     .from('payments')
     .update({ status: 'verified', verified_by: user.id, verified_at: new Date().toISOString() })
@@ -33,6 +46,23 @@ export async function verifyPayment(paymentId: string) {
     .select()
     .single()
   if (error) throw new Error(error.message)
+
+  // Update order's amount_paid and payment_status
+  const { data: order } = await admin
+    .from('orders')
+    .select('total_amount, amount_paid')
+    .eq('id', payment.order_id)
+    .single()
+
+  if (order) {
+    const newAmountPaid = (order.amount_paid ?? 0) + payment.amount
+    const newPaymentStatus = newAmountPaid >= order.total_amount ? 'FULLY_PAID' : 'PARTIALLY_PAID'
+    await admin
+      .from('orders')
+      .update({ amount_paid: newAmountPaid, payment_status: newPaymentStatus })
+      .eq('id', payment.order_id)
+  }
+
   return data
 }
 
@@ -53,11 +83,13 @@ export async function getAllPayments() {
   const { data: payments, error } = await admin
     .from('payments')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true }) // ascending so 1st payment comes first
   if (error) throw new Error(error.message)
 
   const { data: profiles } = await admin.from('profiles').select('id, full_name, email')
-  const { data: orders } = await admin.from('orders').select('id, order_number')
+  const { data: orders } = await admin
+    .from('orders')
+    .select('id, order_number, total_amount, amount_paid, amount_remaining, payment_status')
 
   return (payments ?? []).map(p => ({
     ...p,

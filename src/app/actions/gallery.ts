@@ -10,16 +10,16 @@ type GalleryUpdate = Database['public']['Tables']['gallery_items']['Update']
 
 export type GalleryItem = GalleryRow
 
-export async function getGalleryItems(options?: { category?: string; featured?: boolean }) {
+export async function getGalleryItems(options?: { category?: string; featured?: boolean; limit?: number }) {
   const supabase = await createClient()
   let query = supabase
     .from('gallery_items')
     .select('*')
-    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (options?.category) query = query.eq('category', options.category)
   if (options?.featured !== undefined) query = query.eq('featured', options.featured)
+  if (options?.limit) query = query.limit(options.limit)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { useCart } from '@/context/CartContext'
@@ -26,7 +27,8 @@ const BANKS = {
 }
 
 export default function CheckoutPage() {
-  const { state, grandTotal, removeArtwork, removeStoreItem } = useCart()
+  const { state, grandTotal, clearCart } = useCart()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
   const [name, setName]         = useState('')
@@ -125,14 +127,19 @@ export default function CheckoutPage() {
         receipt_url: upload.file_url,
       })
 
-      // Clear cart
-      state.artworkOrders.forEach(o => removeArtwork(o.id))
-      state.storeItems.forEach(i => removeStoreItem(i.product.id))
+      // Clear cart atomically and bust server cache so dashboard reflects the new order
+      clearCart()
+      router.refresh()
 
       setOrderNumber(order.order_number)
       setSubmitted(true)
     } catch (e: unknown) {
-      setSubmitError(e instanceof Error ? e.message : 'Order failed. Please try again.')
+      const msg = e instanceof Error ? e.message : 'Order failed. Please try again.'
+      if (msg === 'SESSION_EXPIRED') {
+        router.push('/login?next=/checkout')
+        return
+      }
+      setSubmitError(msg)
     } finally {
       setSubmitting(false)
     }
@@ -145,35 +152,6 @@ export default function CheckoutPage() {
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 20 }}>
         <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36 }}>Your cart is empty</h2>
         <Link href="/store" style={{ padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>Browse Store</Link>
-      </div>
-    </PublicLayout>
-  )
-
-  if (submitted) return (
-    <PublicLayout>
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', maxWidth: 520, padding: '0 24px' }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>✦</div>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 48, marginBottom: 16 }}>Order <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Confirmed</span></h1>
-          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 28 }}>
-            Thank you, {name}! Your order <strong style={{ color: 'var(--gold-light)' }}>{orderNumber}</strong> has been received. Big Ed will review your payment and begin work within 24 hours. You will be contacted on {phone}.
-          </p>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, marginBottom: 28, textAlign: 'left' }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Order Details</div>
-            {[
-              ['Order Number', orderNumber],
-              ['Delivery', location === 'ph' ? 'Port Harcourt' : location === 'rivers' ? 'Rivers State' : 'Outside Rivers'],
-              ['Payment Type', paymentType === 'full' ? 'Full Payment' : '50% Deposit'],
-              ['Amount Paid', formatPrice(amountDue)],
-              ['Remaining Balance', amountRemaining > 0 ? formatPrice(amountRemaining) : '—'],
-            ].map(([l, v]) => (
-              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
-                <span style={{ color: 'var(--text-muted)' }}>{l}</span><span>{v}</span>
-              </div>
-            ))}
-          </div>
-          <Link href="/dashboard/orders" style={{ padding: '14px 28px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)', display: 'inline-block' }}>Track My Order →</Link>
-        </div>
       </div>
     </PublicLayout>
   )
@@ -365,7 +343,12 @@ export default function CheckoutPage() {
                   {submitting ? 'Placing Order…' : canSubmit ? 'Confirm Order ✦' : 'Complete all fields'}
                 </button>
                 {!canSubmit && !submitting && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>All fields, terms, and receipt required.</div>}
-                {submitError && <div style={{ marginTop: 10, fontSize: 12, color: '#f87171', textAlign: 'center' }}>{submitError}</div>}
+                {submitError && (
+                  <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', borderLeft: '3px solid #ef4444', color: '#f87171', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 8, lineHeight: 1.5 }}>
+                    <span style={{ flexShrink: 0 }}>⚠</span>
+                    <span>{submitError}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -374,6 +357,62 @@ export default function CheckoutPage() {
       <style>{`
         @media(max-width:900px){.checkout-layout{grid-template-columns:1fr!important;}}
         @media(max-width:700px){.delivery-grid{grid-template-columns:1fr!important;}}
+      `}</style>
+
+      {/* Success modal */}
+      {submitted && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          {/* Backdrop */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }} />
+          {/* Card */}
+          <div style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--gold-primary)', maxWidth: 520, width: '100%', padding: '48px 40px', textAlign: 'center', animation: 'modalIn 0.3s ease' }}>
+            <div style={{ fontSize: 52, marginBottom: 16, color: 'var(--gold-light)' }}>✦</div>
+            <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, marginBottom: 10 }}>
+              Order <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Confirmed!</span>
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>
+              Thank you, {name}! Order <strong style={{ color: 'var(--gold-light)' }}>{orderNumber}</strong> has been received.
+              Big Ed will review your payment and begin work within 24 hours. You'll be contacted on {phone}.
+            </p>
+
+            {/* Order details */}
+            <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '16px 20px', marginBottom: 28, textAlign: 'left' }}>
+              {[
+                ['Order Number', orderNumber],
+                ['Payment Type', paymentType === 'full' ? 'Full Payment' : '50% Deposit'],
+                ['Amount Paid', formatPrice(amountDue)],
+                ...(amountRemaining > 0 ? [['Remaining Balance', formatPrice(amountRemaining)]] : []),
+              ].map(([l, v]) => (
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{l}</span>
+                  <span style={{ color: l === 'Order Number' ? 'var(--gold-light)' : 'var(--text-primary)' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Link href="/dashboard/orders" style={{ display: 'block', padding: '14px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none' }}>
+                Track My Order →
+              </Link>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <Link href="/custom-artwork" style={{ display: 'block', padding: '12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', textDecoration: 'none', transition: 'border-color 0.2s' }}>
+                  + New Artwork
+                </Link>
+                <Link href="/store" style={{ display: 'block', padding: '12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', textDecoration: 'none', transition: 'border-color 0.2s' }}>
+                  Browse Store
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style suppressHydrationWarning>{`
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(12px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
       `}</style>
     </PublicLayout>
   )

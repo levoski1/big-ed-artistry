@@ -4,18 +4,19 @@ import { StatusBadge } from '@/components/ui'
 import Link from 'next/link'
 import type { Database } from '@/lib/types/database'
 
-type Order = Database['public']['Tables']['orders']['Row']
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  order_items: Database['public']['Tables']['order_items']['Row'][]
+}
 type Profile = Database['public']['Tables']['profiles']['Row']
 
 interface Props {
   user: Profile | null
   orders: Order[]
   pendingPayment: number
-  inProgress: number
   completedCount: number
 }
 
-export default function DashboardPageContent({ user, orders, pendingPayment, inProgress, completedCount }: Props) {
+export default function DashboardPageContent({ user, orders, pendingPayment, completedCount }: Props) {
   const recentOrders = orders.slice(0, 4)
   const firstName = user?.full_name?.split(' ')[0] ?? 'there'
 
@@ -48,7 +49,6 @@ export default function DashboardPageContent({ user, orders, pendingPayment, inP
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
             {[
               { icon: '📦', label: 'Total Orders', value: orders.length, color: '#EC4899' },
-              { icon: '⏳', label: 'In Progress', value: inProgress, color: '#F59E0B' },
               { icon: '💳', label: 'Pending Payment', value: pendingPayment, color: '#F43F5E' },
               { icon: '✓', label: 'Completed', value: completedCount, color: '#10B981' },
             ].map(s => (
@@ -127,7 +127,6 @@ export default function DashboardPageContent({ user, orders, pendingPayment, inP
               <div style={{ display: 'grid', gap: 12 }}>
                 {[
                   { label: 'Pending payment', value: pendingPayment, color: '#F43F5E' },
-                  { label: 'In progress', value: inProgress, color: '#A78BFA' },
                   { label: 'Completed', value: completedCount, color: '#10B981' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, paddingBottom: 12, borderBottom: '1px solid rgba(236,72,153,0.1)' }}>

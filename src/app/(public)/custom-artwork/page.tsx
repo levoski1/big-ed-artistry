@@ -97,6 +97,17 @@ export default function CustomArtworkPage() {
       createdAt: new Date().toISOString(),
     })
     setAddedToCart(true)
+    // Reset form for next artwork
+    setSelectedSize(null)
+    setArea(0)
+    setCanvasId('none')
+    setFrameId('none')
+    setGlassId('none')
+    setWriteUpType('no')
+    setCustomMessage('')
+    setOccasion('Birthday')
+    setArtImage(null)
+    setArtImagePreview('')
     setTimeout(() => setAddedToCart(false), 3000)
   }
 
@@ -281,7 +292,7 @@ export default function CustomArtworkPage() {
           </div>
         </div>
       </div>
-      <style>{`
+      <style suppressHydrationWarning>{`
         @media(max-width:900px){
           .art-builder-layout{grid-template-columns:1fr!important;}
           .size-grid{grid-template-columns:repeat(3,1fr)!important;}

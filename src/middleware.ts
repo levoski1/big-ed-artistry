@@ -39,6 +39,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Protect custom artwork and photo enlargement — must be logged in
+  if (!session && (pathname.startsWith('/custom-artwork') || pathname.startsWith('/photo-enlarge') || pathname.startsWith('/checkout'))) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
   // Protect /admin/* sub-routes (not /admin itself which is the login page)
   if (!session && pathname.startsWith('/admin/')) {
     return NextResponse.redirect(new URL('/admin', request.url))

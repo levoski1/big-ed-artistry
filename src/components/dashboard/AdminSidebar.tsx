@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { useTheme } from '@/context/ThemeContext'
+import { logout } from '@/app/actions/auth'
 
 const navItems = [
   { icon: '📊', label: 'Dashboard', href: '/admin/dashboard', color: '#3B82F6' },
@@ -15,6 +17,7 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+  const { isDark, toggleTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -68,9 +71,16 @@ export default function AdminSidebar() {
               <div style={{ fontSize: 11, color: '#64748B' }}>System Manager</div>
             </div>
           </div>
-          <Link href="/login" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#F87171', padding: '8px 12px', background: 'rgba(244, 63, 94, 0.1)', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.2)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}>
-            🚪 Sign Out
-          </Link>
+          {/* Theme toggle */}
+          <button onClick={toggleTheme} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#94A3B8', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, transition: 'all 0.2s' }}>
+            <span>{isDark ? '☀️' : '🌙'}</span>
+            {isDark ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <form action={logout}>
+            <button type="submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#F87171', padding: '8px 12px', background: 'rgba(244, 63, 94, 0.1)', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.2)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+              🚪 Sign Out
+            </button>
+          </form>
         </div>
       </aside>
 

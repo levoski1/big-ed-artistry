@@ -2,8 +2,13 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const HERO_IMAGES = [
-  { src: '/Home/workdone1.jpeg', alt: 'Artwork by Big Ed' },
-  { src: '/Home/workdone2.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide1.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide2.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide3.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide4.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide5.jpeg', alt: 'Artwork by Big Ed' },
+  { src: '/Home/sliders/slide6.jpeg', alt: 'Artwork by Big Ed' },
 ]
 
 export default function HeroCarousel() {
@@ -25,21 +30,38 @@ export default function HeroCarousel() {
     return () => clearInterval(t)
   }, [next])
 
-  const img = HERO_IMAGES[current]
+  const item = HERO_IMAGES[current]
+  const isVideo = item.src.endsWith('.mp4') || item.src.endsWith('.webm')
 
   return (
     <div style={{ width: '100%', maxWidth: 440, margin: '0 auto', position: 'relative' }}>
       <div style={{ position: 'relative', height: 480, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-        <img
-          src={img.src}
-          alt={img.alt}
-          style={{
-            width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-            opacity: fading ? 0 : 1,
-            transform: fading ? 'scale(1.04)' : 'scale(1)',
-            transition: 'opacity 0.4s ease, transform 0.4s ease',
-          }}
-        />
+        {isVideo ? (
+          <video
+            key={item.src}
+            src={item.src}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              opacity: fading ? 0 : 1,
+              transition: 'opacity 0.4s ease',
+            }}
+          />
+        ) : (
+          <img
+            src={item.src}
+            alt={item.alt}
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              opacity: fading ? 0 : 1,
+              transform: fading ? 'scale(1.04)' : 'scale(1)',
+              transition: 'opacity 0.4s ease, transform 0.4s ease',
+            }}
+          />
+        )}
         {/* Gradient overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,14,12,0.5) 0%, transparent 50%)' }} />
 

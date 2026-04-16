@@ -35,8 +35,9 @@ function LoginForm() {
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 40 }}>Access your orders and commissions.</p>
 
       {error && (
-        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171', fontSize: 13 }}>
-          {error}
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', borderLeft: '3px solid #ef4444', color: '#f87171', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 10, lineHeight: 1.5 }}>
+          <span style={{ flexShrink: 0, marginTop: 1 }}>⚠</span>
+          <span>{error}</span>
         </div>
       )}
 

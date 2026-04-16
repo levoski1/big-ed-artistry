@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Stylized "BE" monogram for Big Ed Artistry -->
+  <rect width="64" height="64" rx="8" fill="white"/>
+  <text x="8" y="46" font-family="Georgia, serif" font-size="38" font-weight="700" fill="#0F0E0C" letter-spacing="-2">BE</text>
+</svg>
