@@ -6,6 +6,7 @@ import PublicLayout from '@/components/layout/PublicLayout'
 import { useCart } from '@/context/CartContext'
 import { formatPrice } from '@/lib/tokens'
 import { createClient } from '@/lib/supabase/client'
+import { calcBulkDiscount } from '@/lib/services/pricing'
 
 function SignInModal({ onClose }: { onClose: () => void }) {
   return (
@@ -44,6 +45,11 @@ export default function CartPage() {
   if (!mounted) return null
 
   const isEmpty = state.artworkOrders.length === 0 && state.storeItems.length === 0
+
+  // Total item count for discount (each artwork = 1, each store item = its quantity)
+  const itemCount = state.artworkOrders.length + state.storeItems.reduce((s, i) => s + i.quantity, 0)
+  const { discountAmount, discountLabel } = calcBulkDiscount(itemCount, grandTotal)
+  const discountedTotal = grandTotal - discountAmount
 
   const handleCheckout = () => {
     if (!isLoggedIn) { setShowSignIn(true); return }
@@ -137,9 +143,18 @@ export default function CartPage() {
                   <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, marginBottom: 20 }}>Order Summary</h3>
                   {artworkTotal > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}><span style={{ color: 'var(--text-muted)' }}>Artwork ({state.artworkOrders.length})</span><span>{formatPrice(artworkTotal)}</span></div>}
                   {storeTotal > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}><span style={{ color: 'var(--text-muted)' }}>Store Items</span><span>{formatPrice(storeTotal)}</span></div>}
+                  {discountAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
+                      <span style={{ color: '#10B981' }}>🎉 {discountLabel}</span>
+                      <span style={{ color: '#10B981', fontWeight: 600 }}>−{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-color)', marginBottom: 20 }}>
-                    <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 18 }}>Subtotal</span>
-                    <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: 'var(--gold-light)' }}>{formatPrice(grandTotal)}</span>
+                    <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 18 }}>Total</span>
+                    <div style={{ textAlign: 'right' }}>
+                      {discountAmount > 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{formatPrice(grandTotal)}</div>}
+                      <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: 'var(--gold-light)' }}>{formatPrice(discountedTotal)}</span>
+                    </div>
                   </div>
                   <button onClick={handleCheckout} style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '15px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
                     {isLoggedIn ? 'Proceed to Checkout →' : '🔒 Sign In to Checkout'}
