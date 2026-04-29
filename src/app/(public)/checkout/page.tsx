@@ -6,7 +6,7 @@ import PublicLayout from '@/components/layout/PublicLayout'
 import { useCart } from '@/context/CartContext'
 import { formatPrice } from '@/lib/tokens'
 import { deliveryFees, type DeliveryLocation } from '@/lib/customArtwork'
-import { calcPaymentSplit } from '@/lib/services/pricing'
+import { calcPaymentSplit, calcBulkDiscount } from '@/lib/services/pricing'
 import { createOrder } from '@/app/actions/orders'
 import { uploadPaymentReceipt } from '@/app/actions/uploads'
 import { submitPayment } from '@/app/actions/payments'
@@ -51,7 +51,11 @@ export default function CheckoutPage() {
   useEffect(() => { setSelectedBank('') }, [paymentType])
 
   const deliveryFee = deliveryFees[location]
-  const finalTotal  = grandTotal + deliveryFee
+  // Count total items for bulk discount
+  const itemCount = state.artworkOrders.length + state.storeItems.reduce((s, i) => s + i.quantity, 0)
+  const { discountAmount, discountLabel } = calcBulkDiscount(itemCount, grandTotal)
+  const discountedSubtotal = grandTotal - discountAmount
+  const finalTotal  = discountedSubtotal + deliveryFee
   const { amountDue, amountRemaining } = paymentType
     ? calcPaymentSplit(finalTotal, paymentType as 'full' | 'partial')
     : { amountDue: finalTotal, amountRemaining: 0 }
@@ -111,10 +115,10 @@ export default function CheckoutPage() {
         delivery_address: address,
         delivery_bus_stop: busStop,
         delivery_fee: deliveryFee,
-        subtotal: grandTotal,
+        subtotal: discountedSubtotal,
         total_amount: finalTotal,
         amount_paid: amountDue,
-        notes: `Customer: ${name}, Phone: ${phone}`,
+        notes: `Customer: ${name}, Phone: ${phone}${discountAmount > 0 ? `, Discount: ${discountLabel} (−₦${discountAmount.toLocaleString()})` : ''}`,
       }, items)
 
       const receiptFormData = new FormData()
@@ -316,6 +320,12 @@ export default function CheckoutPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Subtotal</span><span>{formatPrice(grandTotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
+                    <span style={{ color: '#10B981' }}>🎉 {discountLabel}</span>
+                    <span style={{ color: '#10B981', fontWeight: 600 }}>−{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Delivery</span><span>{location !== 'none' ? formatPrice(deliveryFee) : '—'}</span>
                 </div>

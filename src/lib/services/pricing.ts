@@ -50,3 +50,19 @@ export function calcPaymentSplit(totalAmount: number, type: 'full' | 'partial') 
   const amountRemaining = totalAmount - amountDue
   return { amountDue, amountRemaining }
 }
+
+// Bulk discount tiers based on total item count in cart
+export const DISCOUNT_TIERS = [
+  { minItems: 5, rate: 0.20, label: '20% off (5+ items)' },
+  { minItems: 4, rate: 0.15, label: '15% off (4 items)' },
+  { minItems: 3, rate: 0.12, label: '12% off (3 items)' },
+  { minItems: 2, rate: 0.10, label: '10% off (2 items)' },
+] as const
+
+export function calcBulkDiscount(itemCount: number, subtotal: number) {
+  if (itemCount < 2) return { discountRate: 0, discountAmount: 0, discountLabel: '' }
+  const tier = DISCOUNT_TIERS.find(t => itemCount >= t.minItems)
+  if (!tier) return { discountRate: 0, discountAmount: 0, discountLabel: '' }
+  const discountAmount = Math.floor(subtotal * tier.rate)
+  return { discountRate: tier.rate, discountAmount, discountLabel: tier.label }
+}
