@@ -65,6 +65,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Optional: lockfiles (usually keep them, but uncomment if needed)
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
+.env*.local
