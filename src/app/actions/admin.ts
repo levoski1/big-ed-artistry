@@ -69,7 +69,6 @@ export async function updateOrderPaymentStatus(
   }
   const { data, error } = await admin
     .from('orders')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(updates as any)
     .eq('id', orderId)
     .select()

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { PageHero } from '@/components/ui'
 import { formatPrice } from '@/lib/tokens'
@@ -43,7 +44,7 @@ export default function StorePageContent({ products }: { products: Product[] }) 
                 <div key={p.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ height: 200, background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                     {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <Image src={p.image_url} alt={p.name} fill style={{ objectFit: 'cover' }} sizes="(max-width:540px) 100vw, (max-width:1024px) 50vw, 25vw" />
                     ) : (
                       <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ opacity: 0.1 }}><rect x="8" y="8" width="32" height="32" stroke="#D4A84B" strokeWidth="1" /></svg>
                     )}

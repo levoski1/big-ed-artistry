@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -137,8 +138,8 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" style={{ display:'inline-flex', alignItems:'center', gap:10, fontFamily:'"Cormorant Garamond",serif', fontSize:26, fontWeight:600, color:'var(--gold-light)', letterSpacing:'0.15em', textTransform:'uppercase', transition:'color 0.35s' }}>
-            <span style={{ width:36, height:36, borderRadius:8, background:'#fff', display:'inline-flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
-              <img src="/logo/biged_logo.png" alt="Big Ed logo" style={{ width:'130%', height:'130%', objectFit:'contain' }} />
+            <span style={{ width:36, height:36, borderRadius:8, background:'#fff', display:'inline-flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0, position:'relative' }}>
+              <Image src="/logo/biged_logo.png" alt="Big Ed logo" fill style={{ objectFit:'contain' }} />
             </span>
             <span className="brand-text">Big Ed <span style={{ color:'var(--text-primary)', fontWeight:400 }}>Artistry</span></span>
           </Link>

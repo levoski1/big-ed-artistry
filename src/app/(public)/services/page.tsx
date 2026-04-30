@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { SectionTag, GoldLine } from '@/components/ui'
 import { sizeOptions, canvasOptions, frameOptions, glassOptions } from '@/lib/customArtwork'
@@ -106,7 +107,7 @@ export default function ServicesPage() {
                       <div key={c.id} style={{ overflow:'hidden', border:'1px solid var(--border-color)' }}>
                         <div style={{ height:80, background:c.preview, backgroundSize:'cover', position:'relative' }}>
                           {canvasPreviewMap[c.id] && (
-                            <img src={canvasPreviewMap[c.id]} alt={`${c.name} canvas`} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                            <Image src={canvasPreviewMap[c.id]} alt={`${c.name} canvas`} fill style={{ objectFit:'cover' }} />
                           )}
                         </div>
                         <div style={{ padding:'10px 12px', background:'var(--bg-dark)' }}>
@@ -127,7 +128,7 @@ export default function ServicesPage() {
                       <div key={f.id} style={{ overflow:'hidden', border:'1px solid var(--border-color)' }}>
                         <div style={{ height:70, background:f.preview, backgroundSize:'cover', position:'relative' }}>
                           {framePreviewMap[f.id] && (
-                            <img src={framePreviewMap[f.id]} alt={`${f.name} frame`} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                            <Image src={framePreviewMap[f.id]} alt={`${f.name} frame`} fill style={{ objectFit:'cover' }} />
                           )}
                         </div>
                         <div style={{ padding:'10px 12px', background:'var(--bg-dark)' }}>
@@ -148,7 +149,7 @@ export default function ServicesPage() {
                       <div key={g.id} style={{ overflow:'hidden', border:'1px solid var(--border-color)' }}>
                         <div style={{ height:80, background:g.preview, backgroundSize:'cover', position:'relative' }}>
                           {glassPreviewMap[g.id] && (
-                            <img src={glassPreviewMap[g.id]} alt={`${g.name} glass`} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                            <Image src={glassPreviewMap[g.id]} alt={`${g.name} glass`} fill style={{ objectFit:'cover' }} />
                           )}
                         </div>
                         <div style={{ padding:'10px 12px', background:'var(--bg-dark)' }}>
@@ -185,14 +186,14 @@ export default function ServicesPage() {
               <div style={{ height:320, background:mockPhoto?'var(--bg-card)':'var(--bg-dark)', border:`1px solid ${mockPhoto?'var(--gold-dark)':'var(--border-color)'}`, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, position:'relative', overflow:'hidden', transition:'all 0.4s' }}>
                 {mockPhoto ? (
                   <>
-                    <img src="/Home/workdone1.jpeg" alt="After enlargement" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                    <Image src="/Home/workdone1.jpeg" alt="After enlargement" fill style={{ objectFit:'cover' }} />
                     <div style={{ position:'absolute', left:12, bottom:12, background:'rgba(0,0,0,0.55)', border:'1px solid var(--gold-dark)', padding:'8px 10px' }}>
                       <span style={{ fontSize:11, color:'var(--gold-light)', letterSpacing:'0.1em', textTransform:'uppercase' }}>After</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <img src="/Home/workdone2.jpeg" alt="Before enlargement" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                    <Image src="/Home/workdone2.jpeg" alt="Before enlargement" fill style={{ objectFit:'cover' }} />
                     <div style={{ position:'absolute', left:12, bottom:12, background:'rgba(0,0,0,0.55)', border:'1px solid var(--border-color)', padding:'8px 10px' }}>
                       <span style={{ fontSize:11, color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Before</span>
                     </div>

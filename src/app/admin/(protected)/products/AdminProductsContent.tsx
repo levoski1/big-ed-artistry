@@ -1,5 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import { formatPrice } from '@/lib/tokens'
 import { createProduct, updateProduct, deleteProduct, uploadProductImage } from '@/app/actions/products'
 import type { Database } from '@/lib/types/database'
@@ -139,9 +140,9 @@ export default function AdminProductsContent({ products: initial }: { products: 
           ) : filtered.map(p => (
             <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '60px 2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', background: editing?.id === p.id ? 'rgba(184,134,11,0.04)' : 'transparent' }}>
               {/* Thumbnail */}
-              <div style={{ width: 48, height: 48, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ width: 48, height: 48, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <Image src={p.image_url} alt={p.name} fill style={{ objectFit: 'cover' }} sizes="48px" />
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, opacity: 0.3 }}>🖼️</div>
                 )}

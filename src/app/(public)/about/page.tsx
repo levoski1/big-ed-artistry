@@ -3,6 +3,7 @@ import PublicLayout from '@/components/layout/PublicLayout'
 import { SectionTag, GoldLine } from '@/components/ui'
 import { mockTestimonials } from '@/lib/mockData'
 import Link from 'next/link'
+import Image from 'next/image'
 import StarRating from '@/components/ui/StarRating'
 import { useTheme } from '@/context/ThemeContext'
 
@@ -28,8 +29,8 @@ export default function AboutPage() {
             </p>
           </div>
           <div style={{ position:'relative' }}>
-            <div style={{ background:isDark ? '#FFFFFF' : 'var(--bg-card)', border:'1px solid var(--border-color)', aspectRatio:'3/4', position:'relative', overflow:'hidden' }}>
-              <img src="/logo/biged_logo.png" alt="Big Ed logo" style={{ width:'100%', height:'100%', objectFit:'contain', padding:'24px' }} />
+            <div style={{ background:isDark ? '#FFFFFF' : 'var(--bg-card)', border:'1px solid var(--border-color)', aspectRatio:'3/4', position:'relative', overflow:'hidden', padding:'24px' }}>
+              <Image src="/logo/biged_logo.png" alt="Big Ed logo" fill style={{ objectFit:'contain' }} />
             </div>
             <div style={{ position:'absolute', bottom:-20, left:-20, background:'var(--bg-card)', border:'1px solid var(--gold-primary)', padding:'18px 22px' }}>
               <div style={{ fontFamily:'"Cormorant Garamond",serif', fontSize:32, color:'var(--gold-light)' }}>500+</div>

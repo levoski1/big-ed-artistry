@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { SectionTag } from '@/components/ui'
 import { useCart } from '@/context/CartContext'
@@ -54,8 +55,8 @@ export default function GalleryPageContent({ items }: { items: GalleryItem[] }) 
             <div style={{ columns: '3 280px', columnGap: 16 }} className="gallery-columns">
               {filtered.map((item, idx) => (
                 <div key={item.id} className="card-hover" onClick={() => open(item, idx)} style={{ breakInside: 'avoid', marginBottom: 16, background: 'var(--bg-card)', border: '1px solid var(--border-color)', overflow: 'hidden', cursor: 'pointer', display: 'inline-block', width: '100%' }}>
-                  <div style={{ position: 'relative', overflow: 'hidden' }}>
-                    <img src={item.image_url} alt={item.title} style={{ width: '100%', display: 'block', objectFit: 'cover', minHeight: 180 }} loading="lazy" />
+                  <div style={{ position: 'relative', overflow: 'hidden', minHeight: 180 }}>
+                    <Image src={item.image_url} alt={item.title} fill style={{ objectFit: 'cover' }} sizes="(max-width:768px) 100vw, 33vw" />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(15,14,12,0.85) 0%,transparent 60%)', opacity: 0, transition: 'opacity 0.35s' }} className="gallery-overlay" />
                     <div style={{ position: 'absolute', bottom: 12, left: 14, opacity: 0, transition: 'opacity 0.35s', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold-primary)' }} className="gallery-info">View Artwork</div>
                   </div>
@@ -89,8 +90,8 @@ export default function GalleryPageContent({ items }: { items: GalleryItem[] }) 
       {viewer && (
         <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 680, width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-            <div style={{ position: 'relative', maxHeight: 420, overflow: 'hidden' }}>
-              <img src={viewer.image_url} alt={viewer.title} style={{ width: '100%', maxHeight: 420, objectFit: 'cover', display: 'block' }} />
+            <div style={{ position: 'relative', height: 420, overflow: 'hidden' }}>
+              <Image src={viewer.image_url} alt={viewer.title} fill style={{ objectFit: 'cover' }} sizes="680px" />
               <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: 12, right: 12, width: 36, height: 36, background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ padding: 28 }}>

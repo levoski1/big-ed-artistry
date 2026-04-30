@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { formatPrice } from '@/lib/tokens'
@@ -148,7 +149,7 @@ export default function CustomArtworkPage() {
 
             {/* Artwork Sizes Image */}
             <div style={{ background: 'var(--bg-card)', padding: '36px 32px', textAlign: 'center' }}>
-              <img src="/artwork_sizes.png" alt="Artwork Sizes" style={{ maxWidth: '80%', height: 'auto', borderRadius: '8px' }} />
+              <Image src="/artwork_sizes.png" alt="Artwork Sizes" width={800} height={600} style={{ maxWidth: '80%', height: 'auto', borderRadius: '8px' }} />
             </div>
 
             {/* Size */}

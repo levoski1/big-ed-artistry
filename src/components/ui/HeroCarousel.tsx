@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 
 const HERO_IMAGES = [
   { src: '/Home/sliders/slide.jpeg', alt: 'Artwork by Big Ed' },
@@ -51,11 +52,13 @@ export default function HeroCarousel() {
             }}
           />
         ) : (
-          <img
+          <Image
             src={item.src}
             alt={item.alt}
+            fill
+            priority
             style={{
-              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              objectFit: 'cover',
               opacity: fading ? 0 : 1,
               transform: fading ? 'scale(1.04)' : 'scale(1)',
               transition: 'opacity 0.4s ease, transform 0.4s ease',

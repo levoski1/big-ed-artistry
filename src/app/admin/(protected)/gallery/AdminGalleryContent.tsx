@@ -1,5 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import { createGalleryItem, updateGalleryItem, deleteGalleryItem, type GalleryItem } from '@/app/actions/gallery'
 
 const CATEGORIES = ['portrait', 'couple', 'family', 'wedding', 'memorial', 'other']
@@ -119,7 +120,7 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
               {items.map(item => (
                 <div key={item.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                   <div style={{ height: 200, position: 'relative', overflow: 'hidden', background: 'var(--bg-dark)' }}>
-                    <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={item.image_url} alt={item.title} fill style={{ objectFit: 'cover' }} sizes="(max-width:768px) 100vw, 33vw" />
                     {item.featured && <div style={{ position: 'absolute', top: 8, left: 8, padding: '3px 8px', background: 'var(--gold-primary)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-on-gold)' }}>Featured</div>}
                   </div>
                   <div style={{ padding: 16 }}>
