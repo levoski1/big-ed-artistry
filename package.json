@@ -12,9 +12,10 @@
     "db:migrate": "npx supabase db push",
     "db:backup": "pg_dump $DATABASE_URL -f supabase/backups/backup_$(date +%Y%m%d_%H%M%S).sql",
     "db:backup:data": "pg_dump $DATABASE_URL --data-only -f supabase/backups/data_$(date +%Y%m%d_%H%M%S).sql",
-    "db:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF | grep -q 'export' && npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts || echo 'Type generation failed \u2014 keeping existing types'",
+    "db:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF | grep -q 'export' && npx supabase gen types typescript --project-id $SUPABASE_PROJECT_REF > src/lib/types/database.ts || echo 'Type generation failed — keeping existing types'",
     "admin:create": "npx tsx scripts/create-admin.ts",
-    "test": "jest"
+    "test": "jest",
+    "test:ci": "jest --ci --coverage --passWithNoTests"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",
@@ -34,6 +35,8 @@
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.17",
     "dotenv-cli": "^11.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.5",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
