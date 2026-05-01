@@ -34,20 +34,18 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
     setSelectedOrderId(orderId)
     const order = orders.find(o => o.id === orderId)
     if (order) {
-      setAmount(paymentType === 'partial'
-        ? String(Math.ceil(order.amount_remaining * 0.5))
-        : String(order.amount_remaining)
-      )
+      // Always pre-fill with the full remaining balance — the user owes whatever is left
+      setAmount(String(order.amount_remaining))
     }
   }
 
   const handlePaymentTypeChange = (type: 'full' | 'partial') => {
     setPaymentType(type)
     if (selectedOrder) {
-      setAmount(type === 'partial'
-        ? String(Math.ceil(selectedOrder.amount_remaining * 0.5))
-        : String(selectedOrder.amount_remaining)
-      )
+      // Both full and partial pre-fill with amount_remaining:
+      // full  → pay everything still owed
+      // partial → user can pay any portion; pre-fill with the full remaining as a sensible default
+      setAmount(String(selectedOrder.amount_remaining))
     }
   }
 

@@ -79,7 +79,7 @@ describe('sendEmail', () => {
 
     expect(result.success).toBe(false)
     expect(result.error).toBe('Auth failed')
-    expect(mockSend).toHaveBeenCalledTimes(3)
+    expect(mockSend).toHaveBeenCalledTimes(4) // 3 retries + 1 admin alert
   })
 
   it('returns failure when Resend returns an error object', async () => {

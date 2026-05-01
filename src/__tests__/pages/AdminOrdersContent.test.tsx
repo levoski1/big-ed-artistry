@@ -43,8 +43,8 @@ describe('AdminOrdersContent', () => {
   it('renders order rows', () => {
     render(<AdminOrdersContent orders={[makeOrder()]} />)
     expect(screen.getByText('ORD-001')).toBeInTheDocument()
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
-    expect(screen.getByText('₦50,000')).toBeInTheDocument()
+    expect(screen.getAllByText('Jane Doe').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('₦50,000').length).toBeGreaterThan(0)
   })
 
   it('shows order count', () => {
@@ -59,7 +59,7 @@ describe('AdminOrdersContent', () => {
     ]
     render(<AdminOrdersContent orders={orders} />)
     fireEvent.change(screen.getByPlaceholderText(/search by name or order/i), { target: { value: 'jane' } })
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+    expect(screen.getAllByText('Jane Doe').length).toBeGreaterThan(0)
     expect(screen.queryByText('John Smith')).not.toBeInTheDocument()
   })
 
@@ -80,5 +80,85 @@ describe('AdminOrdersContent', () => {
   it('renders Export CSV button', () => {
     render(<AdminOrdersContent orders={[]} />)
     expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument()
+  })
+})
+
+describe('AdminOrdersContent — mobile responsiveness', () => {
+  it('root element has admin-orders-page class', () => {
+    const { container } = render(<AdminOrdersContent orders={[makeOrder()]} />)
+    expect(container.querySelector('.admin-orders-page')).toBeInTheDocument()
+  })
+
+  it('filters row has orders-filters class', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    expect(container.querySelector('.orders-filters')).toBeInTheDocument()
+  })
+
+  it('outer grid has orders-layout class', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    expect(container.querySelector('.orders-layout')).toBeInTheDocument()
+  })
+
+  it('table header row has orders-table-head class', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    expect(container.querySelector('.orders-table-head')).toBeInTheDocument()
+  })
+
+  it('each order row has order-row class', () => {
+    const { container } = render(<AdminOrdersContent orders={[makeOrder(), makeOrder({ id: 'o2', order_number: 'ORD-002' })]} />)
+    expect(container.querySelectorAll('.order-row')).toHaveLength(2)
+  })
+
+  it('each order row contains an order-card-meta element for mobile card layout', () => {
+    const { container } = render(<AdminOrdersContent orders={[makeOrder()]} />)
+    expect(container.querySelector('.order-card-meta')).toBeInTheDocument()
+  })
+
+  it('order-card-meta contains customer name and total for mobile display', () => {
+    const { container } = render(<AdminOrdersContent orders={[makeOrder()]} />)
+    const meta = container.querySelector('.order-card-meta') as HTMLElement
+    expect(meta.textContent).toContain('Jane Doe')
+    expect(meta.textContent).toContain('₦50,000')
+  })
+
+  it('detail panel has order-detail-panel class when an order is selected', () => {
+    const { container } = render(<AdminOrdersContent orders={[makeOrder()]} />)
+    fireEvent.click(screen.getByText('ORD-001'))
+    expect(container.querySelector('.order-detail-panel')).toBeInTheDocument()
+  })
+
+  it('injected style block contains mobile breakpoint for admin-orders-page', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.admin-orders-page/)
+    expect(styles).toMatch(/max-width:\s*700px/)
+  })
+
+  it('injected style block contains tablet breakpoint', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/min-width:\s*701px/)
+    expect(styles).toMatch(/max-width:\s*1024px/)
+  })
+
+  it('injected style block hides table header on mobile', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.orders-table-head/)
+    expect(styles).toMatch(/display:\s*none/)
+  })
+
+  it('injected style block makes detail panel non-sticky on mobile', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.order-detail-panel/)
+    expect(styles).toMatch(/position:\s*static/)
+  })
+
+  it('injected style block stacks filters column on mobile', () => {
+    const { container } = render(<AdminOrdersContent orders={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.orders-filters/)
+    expect(styles).toMatch(/flex-direction:\s*column/)
   })
 })

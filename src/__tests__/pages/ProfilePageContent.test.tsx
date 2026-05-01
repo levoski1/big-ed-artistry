@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ProfilePageContent from '@/app/dashboard/profile/ProfilePageContent'
 import type { Database } from '@/lib/types/database'
 
@@ -12,6 +12,9 @@ jest.mock('@/components/ui', () => ({
 jest.mock('@/app/actions/auth', () => ({
   updateProfile: jest.fn().mockResolvedValue({}),
   logout: jest.fn(),
+}))
+jest.mock('@/app/actions/notifications', () => ({
+  saveNotificationPreferences: jest.fn().mockResolvedValue(undefined),
 }))
 jest.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -88,5 +91,47 @@ describe('ProfilePageContent', () => {
     render(<ProfilePageContent user={null} totalOrders={0} completedCount={0} />)
     expect(screen.getByText('U')).toBeInTheDocument()
     expect(screen.getByText('User')).toBeInTheDocument()
+  })
+
+  describe('notifications tab', () => {
+    const notifPrefs = {
+      order_confirmation: true,
+      payment_confirmation: true,
+      payment_reminder: false,
+      order_status_update: true,
+      welcome: true,
+    }
+
+    it('shows notifications tab button', () => {
+      render(<ProfilePageContent user={mockUser} totalOrders={0} completedCount={0} notifPrefs={notifPrefs} />)
+      expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument()
+    })
+
+    it('renders NotificationPreferencesForm when notifications tab is active', () => {
+      render(<ProfilePageContent user={mockUser} totalOrders={0} completedCount={0} notifPrefs={notifPrefs} />)
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+      expect(screen.getByText('Email Notifications')).toBeInTheDocument()
+    })
+
+    it('reflects initial opted-out preference in the form', () => {
+      render(<ProfilePageContent user={mockUser} totalOrders={0} completedCount={0} notifPrefs={notifPrefs} />)
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+      expect(screen.getByLabelText(/toggle payment reminders/i)).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('uses DEFAULT_PREFERENCES when notifPrefs is null', () => {
+      render(<ProfilePageContent user={mockUser} totalOrders={0} completedCount={0} notifPrefs={null} />)
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+      // All defaults are true
+      expect(screen.getByLabelText(/toggle order confirmation/i)).toHaveAttribute('aria-checked', 'true')
+    })
+
+    it('calls saveNotificationPreferences on save', async () => {
+      const { saveNotificationPreferences } = require('@/app/actions/notifications')
+      render(<ProfilePageContent user={mockUser} totalOrders={0} completedCount={0} notifPrefs={notifPrefs} />)
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+      fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
+      await waitFor(() => expect(saveNotificationPreferences).toHaveBeenCalledWith(notifPrefs))
+    })
   })
 })

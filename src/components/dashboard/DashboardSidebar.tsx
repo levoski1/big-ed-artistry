@@ -26,8 +26,8 @@ export default function DashboardSidebar() {
 
   return (
     <>
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none', position: 'fixed', top: 16, left: 16, zIndex: 999, background: 'var(--gold-primary)', border: 'none', color: 'var(--bg-dark)', width: 44, height: 44, borderRadius: 4, cursor: 'pointer', fontSize: 18, fontWeight: 'bold' }} className="mobile-menu-btn">☰</button>
-      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 98 }} className="mobile-overlay" />}
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none', position: 'fixed', top: 16, left: 16, zIndex: 999, background: 'var(--gold-primary)', border: 'none', color: 'var(--bg-dark)', width: 44, height: 44, borderRadius: 4, cursor: 'pointer', fontSize: 18, fontWeight: 'bold' }} className="dashboard-mobile-btn" aria-label="Toggle navigation menu" aria-expanded={sidebarOpen}>☰</button>
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 98 }} className="dashboard-mobile-overlay" />}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`} style={{ width: 260, background: 'var(--bg-card)', borderRight: '1px solid var(--border-color)', transition: 'background 0.35s ease, border-color 0.35s ease', minHeight: '100vh', padding: '32px 0', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '0 24px 32px', borderBottom: '1px solid var(--border-color)', marginBottom: 16 }}>
           <Link href="/" onClick={handleNavClick} style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20, fontWeight: 600, color: 'var(--gold-light)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
@@ -63,10 +63,11 @@ export default function DashboardSidebar() {
       </aside>
       <style>{`
         @media (max-width: 900px) {
-          .mobile-menu-btn { display: block !important; }
-          .mobile-overlay { display: block !important; }
+          .dashboard-mobile-btn { display: block !important; }
+          .dashboard-mobile-overlay { display: block !important; }
           .dashboard-sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 99; transform: translateX(-100%); transition: transform 0.3s ease; }
           .dashboard-sidebar.open { transform: translateX(0); }
+          .dashboard-content { padding-top: 64px !important; }
         }
       `}</style>
     </>

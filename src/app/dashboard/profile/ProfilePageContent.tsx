@@ -1,10 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { FormGroup, Input } from '@/components/ui'
+import NotificationPreferencesForm from '@/components/ui/NotificationPreferencesForm'
 import { updateProfile, logout } from '@/app/actions/auth'
+import { saveNotificationPreferences } from '@/app/actions/notifications'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/tokens'
 import type { Database } from '@/lib/types/database'
+import type { NotificationPreferences } from '@/lib/notificationPreferences.shared'
+import { DEFAULT_PREFERENCES } from '@/lib/notificationPreferences.shared'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -12,10 +16,11 @@ interface Props {
   user: Profile | null
   totalOrders: number
   completedCount: number
+  notifPrefs?: NotificationPreferences | null
 }
 
-export default function ProfilePageContent({ user, totalOrders, completedCount }: Props) {
-  const [tab, setTab] = useState<'profile' | 'password'>('profile')
+export default function ProfilePageContent({ user, totalOrders, completedCount, notifPrefs }: Props) {
+  const [tab, setTab] = useState<'profile' | 'password' | 'notifications'>('profile')
 
   // Profile form state
   const [fullName, setFullName] = useState(user?.full_name ?? '')
@@ -91,7 +96,7 @@ export default function ProfilePageContent({ user, totalOrders, completedCount }
           </div>
 
           <div style={{ background: 'var(--bg-card)', padding: '16px 0' }}>
-            {[['profile', '◈ Profile Details'], ['password', '◇ Change Password']].map(([key, label]) => (
+            {[['profile', '◈ Profile Details'], ['password', '◇ Change Password'], ['notifications', '◉ Notifications']].map(([key, label]) => (
               <button key={key} onClick={() => setTab(key as typeof tab)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 28px', fontSize: 13, letterSpacing: '0.06em', background: tab === key ? 'rgba(184,134,11,0.08)' : 'transparent', borderLeft: tab === key ? '2px solid var(--gold-primary)' : '2px solid transparent', color: tab === key ? 'var(--gold-light)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif', transition: 'all 0.2s' }}>{label}</button>
             ))}
           </div>
@@ -157,6 +162,12 @@ export default function ProfilePageContent({ user, totalOrders, completedCount }
                 </button>
               </div>
             </>
+          )}
+          {tab === 'notifications' && (
+            <NotificationPreferencesForm
+              initial={notifPrefs ?? DEFAULT_PREFERENCES}
+              onSave={saveNotificationPreferences}
+            />
           )}
         </div>
       </div>

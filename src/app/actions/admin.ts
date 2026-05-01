@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function getAdminStats() {
@@ -74,5 +75,13 @@ export async function updateOrderPaymentStatus(
     .select()
     .single()
   if (error) throw new Error(error.message)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/orders')
+  revalidatePath('/dashboard/payments')
+  revalidatePath('/admin/orders')
+  revalidatePath('/admin/payments')
+  revalidatePath('/admin/dashboard')
+
   return data
 }
