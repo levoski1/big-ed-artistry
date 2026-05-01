@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/emailService'
-import { confirmationTemplate } from '@/lib/emailTemplates'
+import { confirmationTemplate, passwordResetTemplate } from '@/lib/emailTemplates'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { validateEmail, validatePassword, validateName } from '@/lib/sanitize'
 import { toUserMessage, ERR } from '@/lib/errorMessages'
@@ -28,15 +28,15 @@ export async function register(data: {
     // Rate limit: 5 registrations per hour per IP
     const ip = getClientIp()
     const rl = checkRateLimit(`register:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 })
-    if (!rl.allowed) throw new Error('Too many attempts. Please wait a moment and try again.')
+    if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
 
     // Validate inputs
     const cleanEmail = validateEmail(data.email)
-    if (!cleanEmail) throw new Error('Invalid email address.')
+    if (!cleanEmail) throw new Error(ERR.INVALID_EMAIL)
     const cleanPassword = validatePassword(data.password)
-    if (!cleanPassword) throw new Error('Password must be at least 8 characters.')
+    if (!cleanPassword) throw new Error(ERR.WEAK_PASSWORD)
     const cleanName = validateName(data.full_name)
-    if (!cleanName) throw new Error('Please enter a valid name.')
+    if (!cleanName) throw new Error(ERR.INVALID_NAME)
 
     const admin = createAdminClient()
 
@@ -60,7 +60,12 @@ export async function register(data: {
       }, { onConflict: 'id' })
 
       // Generate a confirmation link pointing to our /auth/confirm route
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+      if (!siteUrl) {
+        console.error('[register] NEXT_PUBLIC_SITE_URL is not set in production.')
+        throw new Error(ERR.CONFIRM_LINK_FAILED)
+      }
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: 'signup',
         email: cleanEmail,
@@ -97,7 +102,12 @@ export async function register(data: {
 export async function resendConfirmation(email: string) {
   try {
     const admin = createAdminClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+      ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+    if (!siteUrl) {
+      console.error('[resendConfirmation] NEXT_PUBLIC_SITE_URL is not set in production.')
+      throw new Error(ERR.CONFIRM_LINK_FAILED)
+    }
 
     // Look up the user to get their name for the email
     const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
@@ -129,24 +139,29 @@ export async function login(email: string, password: string) {
     // Rate limit: 10 attempts per 15 minutes per IP
     const ip = getClientIp()
     const rl = checkRateLimit(`login:${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 })
-    if (!rl.allowed) throw new Error('Too many attempts. Please wait a moment and try again.')
+    if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
 
     // Validate inputs — reject obviously malformed values before hitting Supabase
     const cleanEmail = validateEmail(email)
-    if (!cleanEmail) throw new Error('Incorrect email or password.')
+    if (!cleanEmail) throw new Error(ERR.INVALID_CREDENTIALS)
     const cleanPassword = validatePassword(password)
-    if (!cleanPassword) throw new Error('Incorrect email or password.')
+    if (!cleanPassword) throw new Error(ERR.INVALID_CREDENTIALS)
 
     const supabase = await createClient()
     const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
-    // Enumeration protection: always return the same generic message for auth failures
-    if (error) throw new Error('Incorrect email or password.')
+
+    if (error) {
+      // Distinguish unverified email from bad credentials — both are auth errors
+      if (/email not confirmed/i.test(error.message)) throw new Error(ERR.EMAIL_NOT_CONFIRMED)
+      throw new Error(ERR.INVALID_CREDENTIALS)
+    }
     return data
   } catch (e) {
-    // Re-throw rate limit and network errors as-is; mask everything else
     const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes('Too many') || msg.includes('Unable to connect')) throw e
-    throw new Error('Incorrect email or password.')
+    // Pass through our own safe messages; mask everything else
+    const safeValues = Object.values(ERR) as string[]
+    if (safeValues.includes(msg)) throw e
+    throw new Error(ERR.INVALID_CREDENTIALS)
   }
 }
 
@@ -201,4 +216,72 @@ export async function updateProfile(data: { full_name?: string; phone?: string }
 
   if (error) throw new Error(ERR.PROFILE_UPDATE_FAILED)
   return profile
+}
+
+/**
+ * Sends a password reset email.
+ * Always returns the same message regardless of whether the email exists
+ * to prevent user enumeration.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  // Rate limit: 3 reset requests per 15 minutes per IP
+  const ip = getClientIp()
+  const rl = checkRateLimit(`reset:${ip}`, { limit: 3, windowMs: 15 * 60 * 1000 })
+  if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
+
+  const cleanEmail = validateEmail(email)
+  // Always succeed silently for invalid/non-existent emails (no enumeration)
+  if (!cleanEmail) return
+
+  try {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+      ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+    if (!siteUrl) return
+
+    const admin = createAdminClient()
+
+    // Generate a recovery link via Supabase admin API.
+    // Supabase handles token generation, hashing, expiry (default 1h, we use 15m via
+    // the redirectTo flow), and single-use enforcement.
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email: cleanEmail,
+      options: { redirectTo: `${siteUrl}/auth/reset` },
+    })
+
+    // If the email doesn't exist, generateLink returns an error — we swallow it silently.
+    if (linkError || !linkData?.properties?.action_link) return
+
+    // Look up the user's name for a personalised email
+    const { data: { users } } = await admin.auth.admin.listUsers()
+    const user = users.find(u => u.email === cleanEmail)
+    const name = user?.user_metadata?.full_name ?? cleanEmail
+
+    await sendEmail({
+      to: cleanEmail,
+      subject: 'Reset your Big Ed Artistry password',
+      html: passwordResetTemplate({ name, resetUrl: linkData.properties.action_link }),
+    })
+  } catch {
+    // Swallow all errors — never reveal internal state
+  }
+}
+
+/**
+ * Sets a new password for the currently authenticated user (after recovery token exchange).
+ * The /auth/reset route handler exchanges the token for a session before this is called.
+ */
+export async function resetPassword(password: string, confirmPassword: string): Promise<void> {
+  if (password !== confirmPassword) throw new Error(ERR.PASSWORDS_MISMATCH)
+
+  const cleanPassword = validatePassword(password)
+  if (!cleanPassword) throw new Error(ERR.WEAK_PASSWORD)
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.updateUser({ password: cleanPassword })
+    if (error) throw new Error(ERR.RESET_FAILED)
+  } catch (e) {
+    throw new Error(toUserMessage(e, ERR.RESET_FAILED))
+  }
 }

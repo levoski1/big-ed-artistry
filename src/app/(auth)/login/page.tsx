@@ -20,6 +20,7 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [unverified, setUnverified] = useState(false)
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
 
   // Auto-redirect if already authenticated
@@ -34,12 +35,19 @@ function LoginForm() {
     if (!email || !password) { setError('Please fill in all fields.'); return }
     setLoading(true)
     setError('')
+    setUnverified(false)
     try {
       await login(email, password)
       router.push(next)
       router.refresh()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Login failed.')
+      const msg = e instanceof Error ? e.message : 'Login failed.'
+      if (msg.includes('not been verified') || msg.includes('not confirmed')) {
+        setUnverified(true)
+        setError('')
+      } else {
+        setError(msg)
+      }
       setLoading(false)
     }
   }
@@ -67,6 +75,15 @@ function LoginForm() {
         </div>
       )}
 
+      {unverified && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderLeft: '3px solid #eab308', color: '#fde047', fontSize: 13, lineHeight: 1.6 }}>
+          ⚠ Your email address has not been verified yet. Please check your inbox and click the verification link to activate your account.
+          {' '}<button onClick={handleResend} disabled={resendStatus !== 'idle'} style={{ background: 'none', border: 'none', color: 'var(--gold-light)', cursor: resendStatus !== 'idle' ? 'default' : 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>
+            {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Sent ✓' : 'Resend verification email'}
+          </button>
+        </div>
+      )}
+
       {(isExpired || isInvalid) && (
         <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderLeft: '3px solid #eab308', color: '#fde047', fontSize: 13, lineHeight: 1.6 }}>
           {isExpired
@@ -81,7 +98,7 @@ function LoginForm() {
 
       {resendStatus === 'sent' && (
         <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderLeft: '3px solid #22c55e', color: '#86efac', fontSize: 13 }}>
-          ✓ Confirmation email sent! Check your inbox.
+          ✓ A new verification email has been sent. Please check your inbox.
         </div>
       )}
 
@@ -101,7 +118,7 @@ function LoginForm() {
             <Input type="password" placeholder="Your password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSubmit()} />
           </FormGroup>
           <div style={{ textAlign: 'right', marginTop: 8 }}>
-            <Link href="#" style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>Forgot password?</Link>
+            <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>Forgot password?</Link>
           </div>
         </div>
         <button onClick={handleSubmit} disabled={loading} style={{ padding: '14px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: loading ? 'var(--bg-card)' : 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: loading ? 'var(--text-muted)' : 'var(--text-on-gold)', border: loading ? '1px solid var(--border-color)' : 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: '"Libre Franklin", sans-serif', transition: 'all 0.3s' }}>

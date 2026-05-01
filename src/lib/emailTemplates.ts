@@ -148,6 +148,11 @@ export interface AdminPaymentReceivedData {
   isPartial: boolean
 }
 
+export interface PasswordResetData {
+  name: string
+  resetUrl: string
+}
+
 // ─── Templates ────────────────────────────────────────────────────────────
 
 export function confirmationTemplate(data: ConfirmationData): string {
@@ -280,5 +285,16 @@ export function adminPaymentReceivedTemplate(data: AdminPaymentReceivedData): st
       ['Type', data.isPartial ? 'Partial' : 'Full'],
     ])}
     ${ctaButton('Verify Payment', `https://bigEdartistry.com/admin/payments`)}
+  `)
+}
+
+export function passwordResetTemplate(data: PasswordResetData): string {
+  return layout(`
+    ${heading('Reset Your Password')}
+    ${paragraph(`Hi <strong>${data.name}</strong>,`)}
+    ${paragraph('You requested to reset your password. Click the button below to set a new password. This link will expire in 15 minutes.')}
+    ${ctaButton('Reset Password', data.resetUrl)}
+    ${divider()}
+    ${paragraph(`<span style="color:${T.textSecondary};font-size:13px;">If you didn't request a password reset, you can safely ignore this email. Your password will not change.</span>`)}
   `)
 }

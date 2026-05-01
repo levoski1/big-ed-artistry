@@ -9,6 +9,7 @@
 
 import { register, login } from '@/app/actions/auth'
 import { _clearStore } from '@/lib/rateLimit'
+import { ERR } from '@/lib/errorMessages'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,12 @@ jest.mock('@/lib/emailService', () => ({
 
 jest.mock('@/lib/emailTemplates', () => ({
   confirmationTemplate: jest.fn(() => '<p>confirm</p>'),
+  passwordResetTemplate: jest.fn(() => '<p>reset</p>'),
 }))
+
+// Ensure NEXT_PUBLIC_SITE_URL is set so register() doesn't bail out
+beforeAll(() => { process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000' })
+afterAll(() => { delete process.env.NEXT_PUBLIC_SITE_URL })
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -144,12 +150,12 @@ describe('login — input validation', () => {
 
   it('rejects invalid email with generic message', async () => {
     await expect(login('not-an-email', 'password123'))
-      .rejects.toThrow('Incorrect email or password.')
+      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
   })
 
   it('rejects short password with generic message', async () => {
     await expect(login('user@example.com', 'short'))
-      .rejects.toThrow('Incorrect email or password.')
+      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
   })
 
   it('normalizes email before passing to Supabase', async () => {
@@ -173,13 +179,13 @@ describe('login — enumeration protection', () => {
   it('returns same error for wrong password as for non-existent user', async () => {
     mockSignIn.mockResolvedValue({ data: null, error: { message: 'Invalid login credentials' } })
     await expect(login('user@example.com', 'wrongpassword'))
-      .rejects.toThrow('Incorrect email or password.')
+      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
   })
 
   it('does not reveal whether email exists', async () => {
     mockSignIn.mockResolvedValue({ data: null, error: { message: 'Email not confirmed' } })
     await expect(login('unconfirmed@example.com', 'password123'))
-      .rejects.toThrow('Incorrect email or password.')
+      .rejects.toThrow(ERR.EMAIL_NOT_CONFIRMED)
   })
 
   it('does not leak Supabase error details', async () => {

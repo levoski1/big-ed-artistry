@@ -64,8 +64,11 @@ export default function RegisterPage() {
           <div style={{ textAlign: 'center', maxWidth: 400 }}>
             <div style={{ fontSize: 48, marginBottom: 20 }}>✦</div>
             <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36, marginBottom: 16 }}>Check Your Email</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.8 }}>
-              We sent a confirmation link to <strong style={{ color: 'var(--gold-light)' }}>{email}</strong>. Click it to activate your account, then sign in.
+            <div style={{ marginBottom: 24, padding: '14px 18px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderLeft: '3px solid #22c55e', color: '#86efac', fontSize: 13, lineHeight: 1.7, textAlign: 'left' }}>
+              ✓ Account created successfully. A verification link has been sent to <strong style={{ color: 'var(--gold-light)' }}>{email}</strong>. Please check your inbox to activate your account.
+            </div>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.8, fontSize: 14 }}>
+              Once you click the link in your email, you can sign in to your account.
             </p>
             <Link href="/login" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)' }}>Go to Sign In →</Link>
           </div>
