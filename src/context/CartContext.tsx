@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useReducer, useState, type ReactNode } from 'react'
 import type { CartOrder } from '@/lib/customArtwork'
+import ToastNotification from '@/components/ui/ToastNotification'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 export interface StoreProduct {
@@ -183,18 +184,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Toast notification */}
       {state.toast && (
-        <div className="toast-container" style={{
-          position: 'fixed', bottom: 32, right: 32, zIndex: 9000,
-          background: 'var(--bg-card)', border: '1px solid var(--gold-primary)',
-          padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12,
-          boxShadow: 'var(--shadow-md)',
-          animation: 'fadeInUp 0.3s ease',
-          transition: 'background 0.35s ease, border-color 0.35s ease',
-        }}>
-          <span style={{ color: 'var(--gold-light)', fontSize: 16 }}>✦</span>
-          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{state.toast}</span>
-          <button onClick={dismissToast} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, marginLeft: 8 }}>✕</button>
-        </div>
+        <ToastNotification
+          message={state.toast}
+          variant="success"
+          onDismiss={dismissToast}
+        />
       )}
     </CartContext.Provider>
   )

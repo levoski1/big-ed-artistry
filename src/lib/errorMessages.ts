@@ -7,9 +7,9 @@ export const ERR = {
   // Network
   NETWORK: 'Unable to connect. Please check your internet connection and try again.',
   // Auth
-  INVALID_CREDENTIALS: 'Incorrect email or password.',
-  EMAIL_NOT_CONFIRMED: 'Please confirm your email before signing in.',
-  EMAIL_EXISTS: 'An account with this email already exists.',
+  INVALID_CREDENTIALS: 'Invalid email or password. Please try again.',
+  EMAIL_NOT_CONFIRMED: 'Your email address has not been verified yet. Please check your inbox and click the verification link to activate your account.',
+  EMAIL_EXISTS: 'An account with this email already exists. Please log in instead.',
   WEAK_PASSWORD: 'Password must be at least 8 characters.',
   INVALID_EMAIL: 'Invalid email address.',
   INVALID_NAME: 'Please enter a valid name.',
@@ -33,6 +33,11 @@ export const ERR = {
   PERMISSION_DENIED: 'Permission denied. Please sign in and try again.',
   CONFIRM_LINK_FAILED: 'Failed to generate confirmation link. Please try again.',
   CONFIRM_EMAIL_FAILED: 'Account created but confirmation email failed to send. Contact support.',
+  // Password reset
+  RESET_LINK_SENT: 'If an account with this email exists, a password reset link has been sent.',
+  RESET_TOKEN_INVALID: 'This password reset link is invalid or has expired. Please request a new one.',
+  RESET_FAILED: 'Failed to reset password. Please try again.',
+  PASSWORDS_MISMATCH: 'Passwords do not match.',
 } as const
 
 /** Pattern → user message mappings, checked in order */
