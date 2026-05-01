@@ -14,6 +14,12 @@ jest.mock('@/components/ui', () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
   GoldLine: () => <hr />,
 }))
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: () => ({
+    auth: { getSession: jest.fn().mockResolvedValue({ data: { session: null } }) },
+  }),
+}))
+
 const mockLogin = jest.fn()
 const mockRegister = jest.fn()
 jest.mock('@/app/actions/auth', () => ({

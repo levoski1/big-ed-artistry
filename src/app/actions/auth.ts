@@ -1,8 +1,9 @@
 "use server"
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/emailService'
+import { confirmationTemplate } from '@/lib/emailTemplates'
 
 function friendlyAuthError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e)
@@ -30,26 +31,87 @@ export async function register(data: {
   phone?: string
 }) {
   try {
-    const supabase = await createClient()
-    const { data: result, error } = await supabase.auth.signUp({
+    const admin = createAdminClient()
+
+    // Use admin.createUser with email_confirm=false to suppress Supabase's
+    // built-in confirmation email — we send our own branded one below.
+    const { data: result, error } = await admin.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      options: { data: { full_name: data.full_name, phone: data.phone ?? null } },
+      email_confirm: false,
+      user_metadata: { full_name: data.full_name, phone: data.phone ?? null },
     })
     if (error) throw new Error(friendlyAuthError(error))
 
-    // Create the profile row immediately so FK constraints work
     if (result.user) {
-      const admin = createAdminClient()
+      // Create profile row immediately so FK constraints work
       await admin.from('profiles').upsert({
         id: result.user.id,
         email: data.email,
         full_name: data.full_name,
         phone: data.phone ?? null,
       }, { onConflict: 'id' })
+
+      // Generate a confirmation link pointing to our /auth/confirm route
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: 'signup',
+        email: data.email,
+        password: data.password,
+        options: { redirectTo: `${siteUrl}/auth/confirm` },
+      })
+
+      if (linkError || !linkData?.properties?.action_link) {
+        console.error('[register] generateLink failed:', linkError?.message)
+        throw new Error('Failed to generate confirmation link. Please try again.')
+      }
+
+      const emailResult = await sendEmail({
+        to: data.email,
+        subject: 'Confirm your Big Ed Artistry account',
+        html: confirmationTemplate({
+          name: data.full_name,
+          confirmUrl: linkData.properties.action_link,
+        }),
+      })
+
+      if (!emailResult.success) {
+        console.error('[register] sendEmail failed:', emailResult.error)
+        throw new Error('Account created but confirmation email failed to send. Contact support.')
+      }
     }
 
     return result
+  } catch (e) {
+    throw new Error(friendlyAuthError(e))
+  }
+}
+
+export async function resendConfirmation(email: string) {
+  try {
+    const admin = createAdminClient()
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+    // Look up the user to get their name for the email
+    const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
+    if (listError) throw new Error(friendlyAuthError(listError))
+    const user = users.find(u => u.email === email)
+    if (!user) throw new Error('No account found with that email address.')
+    if (user.email_confirmed_at) throw new Error('This email is already confirmed. Please sign in.')
+
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${siteUrl}/auth/confirm` },
+    })
+    if (linkError || !linkData?.properties?.action_link) throw new Error('Failed to generate confirmation link.')
+
+    const name = user.user_metadata?.full_name ?? email
+    await sendEmail({
+      to: email,
+      subject: 'Confirm your Big Ed Artistry account',
+      html: confirmationTemplate({ name, confirmUrl: linkData.properties.action_link }),
+    })
   } catch (e) {
     throw new Error(friendlyAuthError(e))
   }
