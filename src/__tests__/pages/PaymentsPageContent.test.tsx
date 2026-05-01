@@ -86,3 +86,50 @@ describe('PaymentsPageContent', () => {
     expect(screen.getByText(/tips for faster verification/i)).toBeInTheDocument()
   })
 })
+
+describe('PaymentsPageContent — amount pre-fill (Bug 3 fix)', () => {
+  const partiallyPaidOrder = makeOrder({
+    id: 'o2', order_number: 'ORD-002',
+    total_amount: 50000, amount_paid: 25000, amount_remaining: 25000,
+    payment_status: 'PARTIALLY_PAID',
+  })
+
+  it('pre-fills amount with full amount_remaining when order is selected (full type)', () => {
+    render(<PaymentsPageContent orders={[partiallyPaidOrder]} paymentUploads={[]} artworkUploads={[]} />)
+    // First combobox is the order selector
+    const [orderSelect] = screen.getAllByRole('combobox')
+    fireEvent.change(orderSelect, { target: { value: 'o2' } })
+    const amountInput = screen.getByRole('spinbutton')
+    // Should be 25000 (full remaining), NOT 12500 (half of remaining)
+    expect(amountInput).toHaveValue(25000)
+  })
+
+  it('pre-fills amount with full amount_remaining when payment type changes to partial', () => {
+    render(<PaymentsPageContent orders={[partiallyPaidOrder]} paymentUploads={[]} artworkUploads={[]} />)
+    const [orderSelect, paymentTypeSelect] = screen.getAllByRole('combobox')
+    fireEvent.change(orderSelect, { target: { value: 'o2' } })
+    fireEvent.change(paymentTypeSelect, { target: { value: 'partial' } })
+    const amountInput = screen.getByRole('spinbutton')
+    // Should still be 25000 (full remaining), NOT 12500
+    expect(amountInput).toHaveValue(25000)
+  })
+
+  it('pre-fills full amount_remaining for a fresh unpaid order', () => {
+    const freshOrder = makeOrder({ id: 'o3', total_amount: 80000, amount_remaining: 80000 })
+    render(<PaymentsPageContent orders={[freshOrder]} paymentUploads={[]} artworkUploads={[]} />)
+    const [orderSelect] = screen.getAllByRole('combobox')
+    fireEvent.change(orderSelect, { target: { value: 'o3' } })
+    expect(screen.getByRole('spinbutton')).toHaveValue(80000)
+  })
+
+  it('amount is never half of amount_remaining regardless of payment type', () => {
+    render(<PaymentsPageContent orders={[partiallyPaidOrder]} paymentUploads={[]} artworkUploads={[]} />)
+    const [orderSelect] = screen.getAllByRole('combobox')
+    fireEvent.change(orderSelect, { target: { value: 'o2' } })
+    const amountInput = screen.getByRole('spinbutton')
+    const value = Number((amountInput as HTMLInputElement).value)
+    // 12500 would be the buggy half-of-remaining value
+    expect(value).not.toBe(12500)
+    expect(value).toBe(25000)
+  })
+})

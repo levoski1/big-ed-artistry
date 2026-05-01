@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
       <DashboardSidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div className="dashboard-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         {children}
       </div>
     </div>

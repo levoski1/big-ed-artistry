@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from '@/lib/supabase/server'
+import { ERR } from '@/lib/errorMessages'
 import type { Database, UploadType } from '@/lib/types/database'
 
 const BUCKET_MAP: Record<UploadType, string> = {
@@ -20,7 +21,7 @@ export async function uploadFile(
   if (!user) throw new Error('Not authenticated')
 
   const file = formData.get('file') as File
-  if (!file) throw new Error('No file provided')
+  if (!file) throw new Error(ERR.UPLOAD_NO_FILE)
 
   const bucket = BUCKET_MAP[fileType]
   const ext = file.name.split('.').pop()
@@ -32,14 +33,14 @@ export async function uploadFile(
     .upload(storagePath, file, { upsert: false })
   if (uploadError) {
     console.error('[uploadFile storage error]', uploadError.message)
-    throw new Error(uploadError.message)
+    throw new Error(ERR.UPLOAD_FAILED)
   }
 
   // Get signed URL (valid 1 year)
   const { data: urlData } = await supabase.storage
     .from(bucket)
     .createSignedUrl(storagePath, 60 * 60 * 24 * 365)
-  if (!urlData?.signedUrl) throw new Error('Failed to generate signed URL')
+  if (!urlData?.signedUrl) throw new Error(ERR.UPLOAD_URL_FAILED)
 
   // Record in uploads table
   const { data: upload, error: dbError } = await supabase
@@ -57,7 +58,7 @@ export async function uploadFile(
     .single()
   if (dbError) {
     console.error('[uploadFile db error]', dbError.message, dbError.details, dbError.hint)
-    throw new Error(dbError.message)
+    throw new Error(ERR.UPLOAD_FAILED)
   }
 
   return upload

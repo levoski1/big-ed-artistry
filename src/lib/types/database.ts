@@ -331,6 +331,42 @@ export interface Database {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          user_id: string
+          order_confirmation: boolean
+          payment_confirmation: boolean
+          payment_reminder: boolean
+          order_status_update: boolean
+          welcome: boolean
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          order_confirmation?: boolean
+          payment_confirmation?: boolean
+          payment_reminder?: boolean
+          order_status_update?: boolean
+          welcome?: boolean
+          updated_at?: string
+        }
+        Update: {
+          order_confirmation?: boolean
+          payment_confirmation?: boolean
+          payment_reminder?: boolean
+          order_status_update?: boolean
+          welcome?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notification_preferences_user_id_fkey'
+            columns: ['user_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {

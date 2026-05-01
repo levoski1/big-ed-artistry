@@ -27,9 +27,9 @@ export default function AdminSidebar() {
 
   return (
     <>
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none', position: 'fixed', top: 20, left: 20, zIndex: 999, background: 'linear-gradient(135deg, #3B82F6, #06B6D4)', border: 'none', color: 'white', width: 48, height: 48, borderRadius: 8, cursor: 'pointer', fontSize: 20, fontWeight: 'bold', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }} className="mobile-menu-btn">☰</button>
-      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 98 }} className="mobile-overlay"/>}
-      <aside style={{ width: 280, background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)', borderRight: '1px solid rgba(59, 130, 246, 0.1)', minHeight: '100vh', padding: '28px 0', flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none', position: 'fixed', top: 20, left: 20, zIndex: 999, background: 'linear-gradient(135deg, #3B82F6, #06B6D4)', border: 'none', color: 'white', width: 48, height: 48, borderRadius: 8, cursor: 'pointer', fontSize: 20, fontWeight: 'bold', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }} className="admin-mobile-btn" aria-label="Toggle navigation menu" aria-expanded={sidebarOpen}>☰</button>
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 98 }} className="admin-mobile-overlay"/>}
+      <aside className={`admin-sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: 280, background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)', borderRight: '1px solid rgba(59, 130, 246, 0.1)', minHeight: '100vh', padding: '28px 0', flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {/* Brand */}
         <div style={{ padding: '0 24px 32px', borderBottom: '1px solid rgba(59, 130, 246, 0.1)', marginBottom: 24 }}>
           <Link href="/" style={{ fontSize: 20, fontWeight: 700, background: 'linear-gradient(135deg, #3B82F6, #06B6D4)', backgroundClip: 'text', WebkitBackgroundClip: 'text', color: 'transparent' }}>
@@ -86,13 +86,13 @@ export default function AdminSidebar() {
 
       <style>{`
         @media (max-width: 900px) {
-          .mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; }
-          .mobile-overlay { display: block !important; }
-          aside { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 99; transform: translateX(-100%); transition: transform 0.3s ease; }
-          aside.open { transform: translateX(0); }
+          .admin-mobile-btn { display: flex !important; align-items: center; justify-content: center; }
+          .admin-mobile-overlay { display: block !important; }
+          .admin-sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 99; transform: translateX(-100%); transition: transform 0.3s ease; }
+          .admin-sidebar.open { transform: translateX(0); }
+          .admin-content { padding-top: 72px !important; }
         }
       `}</style>
-      <style>{sidebarOpen ? `aside { transform: translateX(0) !important; }` : ''}</style>
     </>
   )
 }

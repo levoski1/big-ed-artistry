@@ -1,27 +1,21 @@
 "use server"
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/emailService'
 import { confirmationTemplate } from '@/lib/emailTemplates'
+import { checkRateLimit } from '@/lib/rateLimit'
+import { validateEmail, validatePassword, validateName } from '@/lib/sanitize'
+import { toUserMessage, ERR } from '@/lib/errorMessages'
 
-function friendlyAuthError(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e)
-  if (
-    msg.includes('fetch failed') ||
-    msg.includes('Connect Timeout') ||
-    msg.includes('ECONNREFUSED') ||
-    msg.includes('network') ||
-    msg.includes('UND_ERR')
-  ) {
-    return 'Unable to connect. Please check your internet connection and try again.'
-  }
-  if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.'
-  if (msg.includes('Email not confirmed')) return 'Please confirm your email before signing in.'
-  if (msg.includes('User already registered')) return 'An account with this email already exists.'
-  if (msg.includes('Password should be')) return 'Password must be at least 8 characters.'
-  if (msg.includes('rate limit') || msg.includes('too many')) return 'Too many attempts. Please wait a moment and try again.'
-  return msg || 'Something went wrong. Please try again.'
+function getClientIp(): string {
+  const hdrs = headers()
+  return (
+    hdrs.get('x-forwarded-for')?.split(',')[0].trim() ??
+    hdrs.get('x-real-ip') ??
+    'unknown'
+  )
 }
 
 export async function register(data: {
@@ -31,24 +25,37 @@ export async function register(data: {
   phone?: string
 }) {
   try {
+    // Rate limit: 5 registrations per hour per IP
+    const ip = getClientIp()
+    const rl = checkRateLimit(`register:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 })
+    if (!rl.allowed) throw new Error('Too many attempts. Please wait a moment and try again.')
+
+    // Validate inputs
+    const cleanEmail = validateEmail(data.email)
+    if (!cleanEmail) throw new Error('Invalid email address.')
+    const cleanPassword = validatePassword(data.password)
+    if (!cleanPassword) throw new Error('Password must be at least 8 characters.')
+    const cleanName = validateName(data.full_name)
+    if (!cleanName) throw new Error('Please enter a valid name.')
+
     const admin = createAdminClient()
 
     // Use admin.createUser with email_confirm=false to suppress Supabase's
     // built-in confirmation email — we send our own branded one below.
     const { data: result, error } = await admin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
+      email: cleanEmail,
+      password: cleanPassword,
       email_confirm: false,
-      user_metadata: { full_name: data.full_name, phone: data.phone ?? null },
+      user_metadata: { full_name: cleanName, phone: data.phone ?? null },
     })
-    if (error) throw new Error(friendlyAuthError(error))
+    if (error) throw new Error(toUserMessage(error))
 
     if (result.user) {
       // Create profile row immediately so FK constraints work
       await admin.from('profiles').upsert({
         id: result.user.id,
-        email: data.email,
-        full_name: data.full_name,
+        email: cleanEmail,
+        full_name: cleanName,
         phone: data.phone ?? null,
       }, { onConflict: 'id' })
 
@@ -56,8 +63,8 @@ export async function register(data: {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: 'signup',
-        email: data.email,
-        password: data.password,
+        email: cleanEmail,
+        password: cleanPassword,
         options: { redirectTo: `${siteUrl}/auth/confirm` },
       })
 
@@ -67,10 +74,10 @@ export async function register(data: {
       }
 
       const emailResult = await sendEmail({
-        to: data.email,
+        to: cleanEmail,
         subject: 'Confirm your Big Ed Artistry account',
         html: confirmationTemplate({
-          name: data.full_name,
+          name: cleanName,
           confirmUrl: linkData.properties.action_link,
         }),
       })
@@ -83,7 +90,7 @@ export async function register(data: {
 
     return result
   } catch (e) {
-    throw new Error(friendlyAuthError(e))
+    throw new Error(toUserMessage(e))
   }
 }
 
@@ -94,7 +101,7 @@ export async function resendConfirmation(email: string) {
 
     // Look up the user to get their name for the email
     const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
-    if (listError) throw new Error(friendlyAuthError(listError))
+    if (listError) throw new Error(toUserMessage(listError))
     const user = users.find(u => u.email === email)
     if (!user) throw new Error('No account found with that email address.')
     if (user.email_confirmed_at) throw new Error('This email is already confirmed. Please sign in.')
@@ -113,18 +120,33 @@ export async function resendConfirmation(email: string) {
       html: confirmationTemplate({ name, confirmUrl: linkData.properties.action_link }),
     })
   } catch (e) {
-    throw new Error(friendlyAuthError(e))
+    throw new Error(toUserMessage(e))
   }
 }
 
 export async function login(email: string, password: string) {
   try {
+    // Rate limit: 10 attempts per 15 minutes per IP
+    const ip = getClientIp()
+    const rl = checkRateLimit(`login:${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 })
+    if (!rl.allowed) throw new Error('Too many attempts. Please wait a moment and try again.')
+
+    // Validate inputs — reject obviously malformed values before hitting Supabase
+    const cleanEmail = validateEmail(email)
+    if (!cleanEmail) throw new Error('Incorrect email or password.')
+    const cleanPassword = validatePassword(password)
+    if (!cleanPassword) throw new Error('Incorrect email or password.')
+
     const supabase = await createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw new Error(friendlyAuthError(error))
+    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
+    // Enumeration protection: always return the same generic message for auth failures
+    if (error) throw new Error('Incorrect email or password.')
     return data
   } catch (e) {
-    throw new Error(friendlyAuthError(e))
+    // Re-throw rate limit and network errors as-is; mask everything else
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('Too many') || msg.includes('Unable to connect')) throw e
+    throw new Error('Incorrect email or password.')
   }
 }
 
@@ -177,6 +199,6 @@ export async function updateProfile(data: { full_name?: string; phone?: string }
     .select()
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(ERR.PROFILE_UPDATE_FAILED)
   return profile
 }

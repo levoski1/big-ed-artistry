@@ -6,6 +6,8 @@
 import { createOrder } from '@/app/actions/orders'
 import * as emailService from '@/lib/emailService'
 
+jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
+
 // ─── Mock Supabase ────────────────────────────────────────────────────────
 
 const mockOrder = {

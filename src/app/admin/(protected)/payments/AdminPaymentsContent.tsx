@@ -79,13 +79,13 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
   }
 
   return (
-    <div style={{ padding: 36, minHeight: '100vh' }}>
+    <div style={{ padding: 36, minHeight: '100vh' }} className="admin-payments-page">
       <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>Payment <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Verification</span></h1>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }} className="payments-filters">
         {['All', 'pending', 'verified', 'rejected'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: '8px 18px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: filter === f ? 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))' : 'transparent', color: filter === f ? 'var(--text-on-gold)' : 'var(--text-secondary)', border: filter === f ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>
             {f === 'All' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -96,7 +96,7 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
 
       {error && <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171', fontSize: 13 }}>{error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedGroup ? '1fr 420px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selectedGroup ? '1fr 420px' : '1fr', gap: 24, alignItems: 'start' }} className="payments-layout">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border-color)' }}>
           {groups.length === 0 ? (
             <div style={{ background: 'var(--bg-card)', padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>No payments found.</div>
@@ -108,7 +108,7 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
             const orderStatus = first.orders?.payment_status
 
             return (
-              <div key={first.order_id} onClick={() => setSelectedGroup(isSelected ? null : group)} style={{ background: 'var(--bg-card)', padding: '20px 24px', cursor: 'pointer', borderLeft: isSelected ? '3px solid var(--gold-primary)' : '3px solid transparent', transition: 'all 0.2s' }}>
+              <div key={first.order_id} onClick={() => setSelectedGroup(isSelected ? null : group)} style={{ background: 'var(--bg-card)', padding: '20px 24px', cursor: 'pointer', borderLeft: isSelected ? '3px solid var(--gold-primary)' : '3px solid transparent', transition: 'all 0.2s' }} className="payment-group-row">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -138,7 +138,7 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
         </div>
 
         {selectedGroup && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }} className="payment-detail-panel">
             <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
               <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20 }}>{selectedGroup[0].orders?.order_number ?? 'Details'}</div>
               <button onClick={() => setSelectedGroup(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
@@ -204,6 +204,21 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
           </div>
         )}
       </div>
+
+      <style suppressHydrationWarning>{`
+        @media (max-width: 700px) {
+          .admin-payments-page { padding: 16px !important; }
+          .payments-filters { gap: 6px !important; }
+          .payments-layout { grid-template-columns: 1fr !important; }
+          .payment-group-row { padding: 14px 16px !important; }
+          .payment-detail-panel { position: static !important; max-height: none !important; }
+        }
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .admin-payments-page { padding: 20px !important; }
+          .payments-layout { grid-template-columns: 1fr !important; }
+          .payment-detail-panel { position: static !important; max-height: none !important; }
+        }
+      `}</style>
     </div>
   )
 }

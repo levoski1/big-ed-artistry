@@ -33,7 +33,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <AdminSidebar />
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div className="admin-content" style={{ flex: 1, overflow: 'auto' }}>
         {children}
       </div>
     </div>

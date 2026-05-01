@@ -83,3 +83,77 @@ describe('AdminCustomersContent', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 })
+
+describe('AdminCustomersContent — mobile responsiveness', () => {
+  it('root element has admin-customers-page class', () => {
+    const { container } = render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    expect(container.querySelector('.admin-customers-page')).toBeInTheDocument()
+  })
+
+  it('filters row has customers-filters class', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    expect(container.querySelector('.customers-filters')).toBeInTheDocument()
+  })
+
+  it('outer grid has customers-layout class', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    expect(container.querySelector('.customers-layout')).toBeInTheDocument()
+  })
+
+  it('table header has customers-table-head class', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    expect(container.querySelector('.customers-table-head')).toBeInTheDocument()
+  })
+
+  it('each customer row has customer-row class', () => {
+    const customers = [makeCustomer(), makeCustomer({ id: 'u2', full_name: 'Bob', email: 'bob@test.com', orders: [] })]
+    const { container } = render(<AdminCustomersContent customers={customers} />)
+    expect(container.querySelectorAll('.customer-row')).toHaveLength(2)
+  })
+
+  it('each row contains customer-card-meta for mobile display', () => {
+    const { container } = render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    expect(container.querySelector('.customer-card-meta')).toBeInTheDocument()
+  })
+
+  it('customer-card-meta contains email and order count', () => {
+    const { container } = render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    const meta = container.querySelector('.customer-card-meta') as HTMLElement
+    expect(meta.textContent).toContain('jane@test.com')
+    expect(meta.textContent).toContain('1 orders')
+  })
+
+  it('detail panel has customer-detail-panel class when selected', () => {
+    const { container } = render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByText('Jane Doe'))
+    expect(container.querySelector('.customer-detail-panel')).toBeInTheDocument()
+  })
+
+  it('style block contains mobile breakpoint', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.admin-customers-page/)
+    expect(styles).toMatch(/max-width:\s*700px/)
+  })
+
+  it('style block hides table header on mobile', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.customers-table-head/)
+    expect(styles).toMatch(/display:\s*none/)
+  })
+
+  it('style block makes detail panel non-sticky on mobile', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/\.customer-detail-panel/)
+    expect(styles).toMatch(/position:\s*static/)
+  })
+
+  it('style block contains tablet breakpoint', () => {
+    const { container } = render(<AdminCustomersContent customers={[]} />)
+    const styles = Array.from(container.querySelectorAll('style')).map(s => s.textContent ?? '').join('')
+    expect(styles).toMatch(/min-width:\s*701px/)
+    expect(styles).toMatch(/max-width:\s*1024px/)
+  })
+})

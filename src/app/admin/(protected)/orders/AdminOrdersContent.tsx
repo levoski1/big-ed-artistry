@@ -77,7 +77,7 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
   const inputStyle = { background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '9px 14px', color: 'var(--text-primary)', fontFamily: '"Libre Franklin",sans-serif', fontSize: 12, outline: 'none', appearance: 'none' as const }
 
   return (
-    <div style={{ padding: 36, minHeight: '100vh' }}>
+    <div style={{ padding: 36, minHeight: '100vh' }} className="admin-orders-page">
       <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
@@ -86,7 +86,7 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
         <button onClick={exportCSV} style={{ padding: '10px 20px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Export CSV</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }} className="orders-filters">
         <input placeholder="Search by name or order #…" value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 200 }} />
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={inputStyle}>
           {FILTER_STATUSES.map(s => <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s.replace('_', ' ')}</option>)}
@@ -97,9 +97,9 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
         <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{filtered.length} orders</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }} className="orders-layout">
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }} className="orders-table-head">
             {['Order', 'Customer', 'Total', 'Paid', 'Status', 'Payment'].map(h => (
               <div key={h} style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
             ))}
@@ -107,7 +107,7 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
           {filtered.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>No orders found.</div>
           ) : filtered.map(order => (
-            <div key={order.id} onClick={() => handleSelectOrder(order)} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }}>
+            <div key={order.id} onClick={() => handleSelectOrder(order)} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }} className="order-row">
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{order.order_number}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(order.created_at)}</div>
@@ -117,12 +117,17 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatPrice(order.amount_paid)}</div>
               <StatusBadge status={order.status} />
               <StatusBadge status={order.payment_status} />
+              {/* Mobile card layout — hidden on desktop via CSS */}
+              <div className="order-card-meta" style={{ display: 'none', gridColumn: '1 / -1', marginTop: 8, gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{order.profiles?.full_name ?? '—'}</span>
+                <span style={{ fontSize: 12, color: 'var(--gold-light)', fontWeight: 500, marginLeft: 'auto' }}>{formatPrice(order.total_amount)}</span>
+              </div>
             </div>
           ))}
         </div>
 
         {selected && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }} className="order-detail-panel">
             <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20 }}>{selected.order_number}</div>
               <button onClick={() => { setSelected(null); setOrderUploads(null) }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
@@ -193,6 +198,42 @@ export default function AdminOrdersContent({ orders: initial }: { orders: Order[
           </div>
         )}
       </div>
+
+      <style suppressHydrationWarning>{`
+        /* ── Mobile (≤ 700px) ── */
+        @media (max-width: 700px) {
+          .admin-orders-page { padding: 16px !important; }
+          .orders-filters { flex-direction: column !important; }
+          .orders-filters input,
+          .orders-filters select { width: 100% !important; }
+          .orders-layout { grid-template-columns: 1fr !important; }
+          /* Hide desktop table header */
+          .orders-table-head { display: none !important; }
+          /* Switch rows to card layout */
+          .order-row {
+            grid-template-columns: 1fr 1fr !important;
+            padding: 14px 16px !important;
+            gap: 6px 12px;
+          }
+          .order-row > div:nth-child(2),
+          .order-row > div:nth-child(3),
+          .order-row > div:nth-child(4) { display: none !important; }
+          .order-card-meta { display: flex !important; }
+          /* Detail panel: full-width, not sticky */
+          .order-detail-panel { position: static !important; max-height: none !important; }
+        }
+        /* ── Tablet (701px – 1024px) ── */
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .admin-orders-page { padding: 20px !important; }
+          .orders-layout { grid-template-columns: 1fr !important; }
+          .order-detail-panel { position: static !important; max-height: none !important; }
+          .orders-table-head,
+          .order-row { grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr !important; }
+          /* Hide "Paid" column on tablet to save space */
+          .orders-table-head > div:nth-child(4),
+          .order-row > div:nth-child(4) { display: none !important; }
+        }
+      `}</style>
     </div>
   )
 }
