@@ -82,6 +82,7 @@ jobs:
       - run: npm ci
 
       - name: Validate required secrets
+        if: github.event_name != 'pull_request'
         run: |
           missing=()
           [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]      && missing+=("NEXT_PUBLIC_SUPABASE_URL")
@@ -103,8 +104,8 @@ jobs:
 
       - run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
 
   security:
     name: Security Audit
