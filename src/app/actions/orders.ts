@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { sendOrderConfirmation, sendAdminNewOrder } from '@/lib/emailService'
 import type { Database } from '@/lib/types/database'
 
 type OrderInsert = Database['public']['Tables']['orders']['Insert']
@@ -69,6 +70,34 @@ export async function createOrder(
       .from('order_items')
       .insert(items.map(item => ({ ...item, order_id: newOrder.id })))
     if (itemsError) throw new Error(itemsError.message)
+
+    // Send notification emails (non-blocking — don't fail the order if email fails)
+    const firstItem = items[0]
+    const service = firstItem?.artwork_type === 'photo_enlargement'
+      ? 'Photo Enlargement'
+      : firstItem?.item_type === 'store_product'
+        ? 'Store Product'
+        : 'Custom Artwork'
+    const emailData = {
+      name: user.user_metadata?.full_name ?? user.email ?? 'Customer',
+      orderNumber: newOrder.order_number,
+      service,
+      size: firstItem?.size_label ?? '—',
+      medium: firstItem?.canvas_option ?? '—',
+      total: newOrder.total_amount,
+      estimatedDelivery: '7–14 business days',
+    }
+
+    await Promise.allSettled([
+      sendOrderConfirmation(user.email!, emailData),
+      sendAdminNewOrder({
+        customerName: emailData.name,
+        customerEmail: user.email!,
+        orderNumber: newOrder.order_number,
+        service,
+        total: newOrder.total_amount,
+      }),
+    ])
 
     return newOrder
   } catch (e) {

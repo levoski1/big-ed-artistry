@@ -1,19 +1,34 @@
 'use client'
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { FormGroup, Input, GoldLine } from '@/components/ui'
-import { login } from '@/app/actions/auth'
+import { login, resendConfirmation } from '@/app/actions/auth'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get('next') || '/dashboard'
 
+  const confirmed = searchParams.get('confirmed') === '1'
+  const errorParam = searchParams.get('error')
+  const isExpired = errorParam === 'link_expired'
+  const isInvalid = errorParam === 'invalid_token'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace(next)
+    })
+  }, [router, next])
 
   const handleSubmit = async () => {
     if (!email || !password) { setError('Please fill in all fields.'); return }
@@ -29,10 +44,46 @@ function LoginForm() {
     }
   }
 
+  const handleResend = async () => {
+    if (!email) { setError('Enter your email address above, then click resend.'); return }
+    setResendStatus('sending')
+    try {
+      await resendConfirmation(email)
+      setResendStatus('sent')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to resend.')
+      setResendStatus('idle')
+    }
+  }
+
   return (
     <div style={{ width: '100%', maxWidth: 400 }}>
       <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, marginBottom: 8 }}>Sign In</h1>
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 40 }}>Access your orders and commissions.</p>
+
+      {confirmed && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderLeft: '3px solid #22c55e', color: '#86efac', fontSize: 13, lineHeight: 1.5 }}>
+          ✓ Email confirmed! You can now sign in.
+        </div>
+      )}
+
+      {(isExpired || isInvalid) && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderLeft: '3px solid #eab308', color: '#fde047', fontSize: 13, lineHeight: 1.6 }}>
+          {isExpired
+            ? '⏱ Your confirmation link has expired.'
+            : '⚠ This confirmation link is invalid.'}
+          {' '}Enter your email below and click{' '}
+          <button onClick={handleResend} disabled={resendStatus !== 'idle'} style={{ background: 'none', border: 'none', color: 'var(--gold-light)', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>
+            {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Sent ✓' : 'resend confirmation email'}
+          </button>.
+        </div>
+      )}
+
+      {resendStatus === 'sent' && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderLeft: '3px solid #22c55e', color: '#86efac', fontSize: 13 }}>
+          ✓ Confirmation email sent! Check your inbox.
+        </div>
+      )}
 
       {error && (
         <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', borderLeft: '3px solid #ef4444', color: '#f87171', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 10, lineHeight: 1.5 }}>
