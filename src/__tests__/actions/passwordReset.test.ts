@@ -49,6 +49,9 @@ jest.mock('@/lib/emailTemplates', () => ({
 
 // ─── Setup ────────────────────────────────────────────────────────────────
 
+beforeAll(() => { process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000' })
+afterAll(() => { delete process.env.NEXT_PUBLIC_SITE_URL })
+
 beforeEach(() => {
   _clearStore()
   mockGenerateLink.mockReset()

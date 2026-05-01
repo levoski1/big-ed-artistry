@@ -47,7 +47,12 @@ jest.mock('@/lib/emailService', () => ({
 
 jest.mock('@/lib/emailTemplates', () => ({
   confirmationTemplate: jest.fn(() => '<p>confirm</p>'),
+  passwordResetTemplate: jest.fn(() => '<p>reset</p>'),
 }))
+
+// Ensure NEXT_PUBLIC_SITE_URL is set so register() doesn't bail out
+beforeAll(() => { process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000' })
+afterAll(() => { delete process.env.NEXT_PUBLIC_SITE_URL })
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
