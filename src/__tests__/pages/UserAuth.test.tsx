@@ -16,7 +16,10 @@ jest.mock('@/components/ui', () => ({
 }))
 jest.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
-    auth: { getSession: jest.fn().mockResolvedValue({ data: { session: null } }) },
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+      getUser: jest.fn().mockResolvedValue({ data: { user: null } }),
+    },
   }),
 }))
 

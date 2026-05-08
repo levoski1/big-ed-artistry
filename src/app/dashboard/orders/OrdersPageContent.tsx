@@ -9,8 +9,23 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
   order_items: Database['public']['Tables']['order_items']['Row'][]
 }
 
-export default function OrdersPageContent({ orders }: { orders: Order[] }) {
+export default function OrdersPageContent({ orders, paymentMap }: { orders: Order[]; paymentMap: Record<string, { status: string; totalSubmitted: number }> }) {
   const [selected, setSelected] = useState<Order | null>(null)
+
+  const getPaymentDisplay = (order: Order) => {
+    if (order.payment_status !== ('NOT_PAID' as string)) return order.payment_status
+    const p = paymentMap[order.id]
+    if (!p) return order.payment_status
+    if (p.status === 'pending') return 'pending_verification'
+    if (p.status === 'rejected') return 'rejected'
+    return order.payment_status
+  }
+
+  // Show submitted amount if admin hasn't verified yet
+  const getDisplayAmountPaid = (order: Order) => {
+    if (order.amount_paid > 0) return order.amount_paid
+    return paymentMap[order.id]?.totalSubmitted ?? 0
+  }
 
   return (
     <div style={{ padding: 40 }}>
@@ -45,7 +60,7 @@ export default function OrdersPageContent({ orders }: { orders: Order[] }) {
               <div style={{ fontSize: 14, color: 'var(--gold-light)', fontWeight: 500 }}>{formatPrice(order.total_amount)}</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatPrice(order.amount_paid)}</div>
               <StatusBadge status={order.status} />
-              <StatusBadge status={order.payment_status} />
+              <StatusBadge status={getPaymentDisplay(order)} />
               <button style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-muted)', padding: '6px 12px', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif' }}>View</button>
             </div>
           ))}
@@ -65,8 +80,7 @@ export default function OrdersPageContent({ orders }: { orders: Order[] }) {
                 {[
                   { label: 'Order Placed', done: true, date: formatDate(selected.created_at) },
                   { label: 'Payment Verified', done: selected.payment_status !== 'NOT_PAID' },
-                  { label: 'In Progress', done: ['in_progress', 'review', 'completed'].includes(selected.status) },
-                  { label: 'Under Review', done: ['review', 'completed'].includes(selected.status) },
+                  { label: 'In Progress', done: ['in_progress', 'completed'].includes(selected.status) },
                   { label: 'Completed', done: selected.status === 'completed' },
                 ].map(step => (
                   <div key={step.label} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 12 }}>
@@ -84,8 +98,8 @@ export default function OrdersPageContent({ orders }: { orders: Order[] }) {
                 <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16 }}>Order Details</div>
                 {[
                   ['Total Amount', formatPrice(selected.total_amount)],
-                  ['Amount Paid', formatPrice(selected.amount_paid)],
-                  ['Remaining', formatPrice(selected.amount_remaining)],
+                  ['Amount Paid', formatPrice(getDisplayAmountPaid(selected))],
+                  ['Remaining', formatPrice(Math.max(0, selected.total_amount - getDisplayAmountPaid(selected)))],
                   ['Delivery', selected.delivery_location.replace(/_/g, ' ')],
                   ['Items', String(selected.order_items?.length ?? 0)],
                   ['Placed', formatDate(selected.created_at)],
@@ -104,8 +118,19 @@ export default function OrdersPageContent({ orders }: { orders: Order[] }) {
                 </div>
               )}
 
-              {selected.payment_status === 'NOT_PAID' && (
+              {selected.payment_status === ('NOT_PAID' as string) && !paymentMap[selected.id] && (
                 <Link href="/dashboard/payments" style={{ display: 'flex', justifyContent: 'center', marginTop: 24, padding: '12px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none' }}>Upload Payment Proof →</Link>
+              )}
+              {paymentMap[selected.id]?.status === 'pending' && (
+                <div style={{ marginTop: 20, padding: '12px 16px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.3)', fontSize: 13, color: 'var(--gold-light)' }}>
+                  ⏳ Your payment receipt is awaiting admin verification.
+                </div>
+              )}
+              {paymentMap[selected.id]?.status === 'rejected' && (
+                <div style={{ marginTop: 20, padding: '12px 16px', background: 'rgba(139,58,58,0.1)', border: '1px solid rgba(139,58,58,0.3)', fontSize: 13, color: 'var(--danger)' }}>
+                  ✕ Your payment was rejected. Please upload a new receipt.
+                  <Link href="/dashboard/payments" style={{ display: 'block', marginTop: 10, textAlign: 'center', padding: '10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none' }}>Re-upload Receipt →</Link>
+                </div>
               )}
             </div>
           </div>

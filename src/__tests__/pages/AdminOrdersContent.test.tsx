@@ -11,7 +11,7 @@ jest.mock('@/components/ui', () => ({
   StatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
 }))
 jest.mock('@/app/actions/orders', () => ({
-  updateOrderStatus: jest.fn().mockResolvedValue({ id: 'o1', status: 'confirmed', payment_status: 'NOT_PAID' }),
+  updateOrderStatus: jest.fn().mockResolvedValue({ id: 'o1', status: 'in_progress', payment_status: 'NOT_PAID' }),
 }))
 jest.mock('@/app/actions/uploads', () => ({
   getAdminUploadsForOrder: jest.fn().mockResolvedValue({ artworkRefs: [], paymentReceipts: [] }),

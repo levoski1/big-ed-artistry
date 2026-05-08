@@ -8,6 +8,7 @@ import { confirmationTemplate, passwordResetTemplate } from '@/lib/emailTemplate
 import { checkRateLimit } from '@/lib/rateLimit'
 import { validateEmail, validatePassword, validateName } from '@/lib/sanitize'
 import { toUserMessage, ERR } from '@/lib/errorMessages'
+import { getAppUrl } from '@/lib/appUrl'
 
 function getClientIp(): string {
   const hdrs = headers()
@@ -60,10 +61,9 @@ export async function register(data: {
       }, { onConflict: 'id' })
 
       // Generate a confirmation link pointing to our /auth/confirm route
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-        ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+      const siteUrl = getAppUrl()
       if (!siteUrl) {
-        console.error('[register] NEXT_PUBLIC_SITE_URL is not set in production.')
+        console.error('[register] APP_URL is not set in production.')
         throw new Error(ERR.CONFIRM_LINK_FAILED)
       }
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
@@ -89,7 +89,9 @@ export async function register(data: {
 
       if (!emailResult.success) {
         console.error('[register] sendEmail failed:', emailResult.error)
-        throw new Error('Account created but confirmation email failed to send. Contact support.')
+        // Still allow registration to succeed, but inform user about email issue
+        console.warn('[register] User account created but confirmation email failed to send')
+        // Don't throw error - account was created successfully
       }
     }
 
@@ -102,10 +104,9 @@ export async function register(data: {
 export async function resendConfirmation(email: string) {
   try {
     const admin = createAdminClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-      ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+    const siteUrl = getAppUrl()
     if (!siteUrl) {
-      console.error('[resendConfirmation] NEXT_PUBLIC_SITE_URL is not set in production.')
+      console.error('[resendConfirmation] APP_URL is not set in production.')
       throw new Error(ERR.CONFIRM_LINK_FAILED)
     }
 
@@ -234,8 +235,7 @@ export async function forgotPassword(email: string): Promise<void> {
   if (!cleanEmail) return
 
   try {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-      ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null)
+    const siteUrl = getAppUrl()
     if (!siteUrl) return
 
     const admin = createAdminClient()

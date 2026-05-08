@@ -26,9 +26,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Use getSession() here — it reads from the cookie without acquiring the
-  // navigator lock, avoiding contention with concurrent server action getUser() calls.
-  const { data: { session } } = await supabase.auth.getSession()
+  // Use getUser() to validate the session against the Supabase server.
+  // getSession() only reads the local cookie and will trust a stale token
+  // for a deleted user, causing an infinite redirect loop.
+  const { data: { user } } = await supabase.auth.getUser()
+  const session = user ? true : null
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users away from protected routes
@@ -62,7 +64,7 @@ export async function middleware(request: NextRequest) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user!.id)
         .single()
 
       if (profile?.role !== 'admin') {

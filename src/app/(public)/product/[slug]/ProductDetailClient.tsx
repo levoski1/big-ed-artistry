@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
 import PublicLayout from '@/components/layout/PublicLayout'
 import StarRating from '@/components/ui/StarRating'
@@ -16,7 +15,6 @@ interface Props {
 
 export default function ProductDetailClient({ product, related }: Props) {
   const { addStoreItem, rateProduct, state } = useCart()
-  const [added, setAdded] = useState(false)
   const userRating = state.ratings[product.id]
 
   const handleAdd = () => {
@@ -34,8 +32,6 @@ export default function ProductDetailClient({ product, related }: Props) {
       featured: product.featured,
       rating: product.rating,
     })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 3000)
   }
 
   return (
@@ -104,14 +100,10 @@ export default function ProductDetailClient({ product, related }: Props) {
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <button onClick={handleAdd} disabled={!product.in_stock} style={{ flex: 1, minWidth: 160, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: !product.in_stock ? 'var(--bg-dark)' : added ? 'var(--success)' : 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: product.in_stock ? 'var(--text-on-gold)' : 'var(--text-muted)', border: product.in_stock ? 'none' : '1px solid var(--border-color)', cursor: product.in_stock ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin", sans-serif', transition: 'all 0.3s' }}>
-                  {added ? '✓ Added to Cart!' : product.in_stock ? '+ Add to Cart' : 'Out of Stock'}
+                <button onClick={handleAdd} disabled={!product.in_stock} style={{ flex: 1, minWidth: 160, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: !product.in_stock ? 'var(--bg-dark)' : 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: product.in_stock ? 'var(--text-on-gold)' : 'var(--text-muted)', border: product.in_stock ? 'none' : '1px solid var(--border-color)', cursor: product.in_stock ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin", sans-serif', transition: 'all 0.3s' }}>
+                  {product.in_stock ? '+ Add to Cart' : 'Out of Stock'}
                 </button>
-                {added ? (
-                  <Link href="/cart" style={{ padding: '16px 20px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--gold-primary)', color: 'var(--gold-light)', display: 'flex', alignItems: 'center' }}>View Cart →</Link>
-                ) : (
-                  <Link href="/custom-artwork" style={{ padding: '16px 20px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>Custom →</Link>
-                )}
+                <Link href="/custom-artwork" style={{ padding: '16px 20px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>Custom →</Link>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>All orders confirmed within 24 hours. Payment via bank transfer — proof required to begin.</p>
             </div>

@@ -13,8 +13,10 @@ type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
 type OrderRow = Database['public']['Tables']['orders']['Row']
 
 export async function createOrder(
-  order: Omit<OrderInsert, 'order_number' | 'user_id'>,
-  items: Omit<OrderItemInsert, 'order_id'>[]
+  order: Omit<OrderInsert, 'order_number' | 'user_id' | 'amount_paid'>,
+  items: Omit<OrderItemInsert, 'order_id'>[],
+  amountPaid = 0,
+  paymentType: 'full' | 'partial' = 'full'
 ): Promise<OrderRow> {
   try {
     const supabase = await createClient()
@@ -54,6 +56,18 @@ export async function createOrder(
       : firstItem?.item_type === 'store_product'
         ? 'Store Product'
         : 'Custom Artwork'
+
+    const amountPaidForEmail = amountPaid
+    const isPartial = paymentType === 'partial'
+    const emailItems = items.map(i => ({
+      label: i.size_label
+        ? `${i.artwork_type === 'photo_enlargement' ? 'Photo Enlargement' : 'Custom Artwork'} — ${i.size_label}`
+        : i.product_id
+          ? `Store Product × ${i.quantity}`
+          : 'Artwork',
+      price: i.item_subtotal,
+    }))
+
     const emailData = {
       name: user.user_metadata?.full_name ?? user.email ?? 'Customer',
       orderNumber: newOrder.order_number,
@@ -61,7 +75,11 @@ export async function createOrder(
       size: firstItem?.size_label ?? '—',
       medium: firstItem?.canvas_option ?? '—',
       total: newOrder.total_amount,
-      estimatedDelivery: '7–14 business days',
+      amountPaid: amountPaidForEmail,
+      isPartial,
+      balanceDue: isPartial ? newOrder.total_amount - amountPaidForEmail : undefined,
+      estimatedDelivery: '1–3 weeks',
+      items: emailItems,
     }
 
     await Promise.allSettled([

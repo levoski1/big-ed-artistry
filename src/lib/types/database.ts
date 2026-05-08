@@ -3,7 +3,7 @@
 
 export type UserRole = 'customer' | 'admin'
 export type ProductCategory = 'print' | 'canvas' | 'bundle' | 'frame'
-export type OrderStatus = 'pending' | 'confirmed' | 'in_progress' | 'review' | 'completed' | 'cancelled'
+export type OrderStatus = 'pending' | 'in_progress' | 'completed' | 'canceled'
 export type PaymentStatus = 'NOT_PAID' | 'PARTIALLY_PAID' | 'FULLY_PAID'
 export type DeliveryLocation = 'port_harcourt' | 'rivers_state' | 'outside_rivers'
 export type ArtworkType = 'custom_artwork' | 'photo_enlargement'

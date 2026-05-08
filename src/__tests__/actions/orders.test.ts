@@ -125,6 +125,7 @@ describe('createOrder — email notifications', () => {
         size: 'A3',
         medium: 'Charcoal',
         total: 47000,
+        estimatedDelivery: '1–3 weeks',
       })
     )
   })

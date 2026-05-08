@@ -82,7 +82,7 @@ describe('Notification Preference Gating', () => {
   })
 
   describe('sendOrderConfirmation', () => {
-    const data = { orderNumber: 'ORD-001', total: 50000, items: [], customerName: 'Bob' }
+    const data = { orderNumber: 'ORD-001', total: 50000, amountPaid: 50000, isPartial: false, items: [], customerName: 'Bob' }
 
     it('sends when order_confirmation is enabled', async () => {
       mockGetPreferencesForUser.mockResolvedValue({ ...ALL_ON })
@@ -169,7 +169,7 @@ describe('Notification Preference Gating', () => {
       mockGetPreferencesForUser.mockResolvedValue({ ...ALL_ON })
       await sendOrderConfirmation(
         'x@example.com',
-        { orderNumber: 'X', total: 0, items: [], customerName: 'X' } as any,
+        { orderNumber: 'X', total: 100, amountPaid: 100, isPartial: false, items: [], customerName: 'X' } as any,
         'specific-user-id'
       )
       expect(mockGetPreferencesForUser).toHaveBeenCalledWith('specific-user-id')
@@ -178,7 +178,7 @@ describe('Notification Preference Gating', () => {
     it('does not call getPreferencesForUser when userId is omitted', async () => {
       await sendOrderConfirmation(
         'x@example.com',
-        { orderNumber: 'X', total: 0, items: [], customerName: 'X' } as any
+        { orderNumber: 'X', total: 100, amountPaid: 100, isPartial: false, items: [], customerName: 'X' } as any
       )
       expect(mockGetPreferencesForUser).not.toHaveBeenCalled()
     })

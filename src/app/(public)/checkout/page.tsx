@@ -118,9 +118,8 @@ export default function CheckoutPage() {
         delivery_fee: deliveryFee,
         subtotal: discountedSubtotal,
         total_amount: finalTotal,
-        amount_paid: amountDue,
         notes: `Customer: ${name}, Phone: ${phone}${discountAmount > 0 ? `, Discount: ${discountLabel} (−₦${discountAmount.toLocaleString()})` : ''}`,
-      }, items)
+      }, items, amountDue, paymentType as 'full' | 'partial')
 
       const receiptFormData = new FormData()
       receiptFormData.append('file', receipt)
@@ -132,10 +131,7 @@ export default function CheckoutPage() {
         receipt_url: upload.file_url,
       })
 
-      // Clear cart atomically and bust server cache so dashboard reflects the new order
-      clearCart()
-      router.refresh()
-
+      // Show success modal first, then clear cart when user navigates away
       setOrderNumber(order.order_number)
       setSubmitted(true)
     } catch (e: unknown) {
@@ -371,14 +367,18 @@ export default function CheckoutPage() {
       `}</style>
 
       {submitted && (
-        <OrderSuccessModal
-          name={name}
-          phone={phone}
-          orderNumber={orderNumber}
-          paymentType={paymentType as 'full' | 'partial'}
-          amountDue={amountDue}
-          amountRemaining={amountRemaining}
-        />
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div onClick={() => { clearCart(); router.refresh() }}>
+          <OrderSuccessModal
+            name={name}
+            phone={phone}
+            orderNumber={orderNumber}
+            paymentType={paymentType as 'full' | 'partial'}
+            amountDue={amountDue}
+            amountRemaining={amountRemaining}
+            onClose={() => { clearCart(); router.refresh(); setSubmitted(false) }}
+          />
+        </div>
       )}
     </PublicLayout>
   )

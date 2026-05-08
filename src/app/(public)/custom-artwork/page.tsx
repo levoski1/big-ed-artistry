@@ -1,5 +1,4 @@
 'use client'
-import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import PublicLayout from '@/components/layout/PublicLayout'
@@ -97,7 +96,6 @@ export default function CustomArtworkPage() {
       deliveryFee: 0, totalPrice,
       createdAt: new Date().toISOString(),
     })
-    setAddedToCart(true)
     // Reset form for next artwork
     setSelectedSize(null)
     setArea(0)
@@ -109,7 +107,6 @@ export default function CustomArtworkPage() {
     setOccasion('Birthday')
     setArtImage(null)
     setArtImagePreview('')
-    setTimeout(() => setAddedToCart(false), 3000)
   }
 
   function OptionCard({ id, name, preview, selected, disabled, onSelect, imageUrl }: { id: string; name: string; preview: string; selected: boolean; disabled?: boolean; onSelect: () => void; imageUrl?: string }) {
@@ -242,10 +239,9 @@ export default function CustomArtworkPage() {
 
             {/* CTA */}
             <div style={{ background: 'var(--bg-card)', padding: '28px 32px', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button onClick={handleAddToCart} disabled={!canAdd} style={{ flex: 1, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: canAdd ? (addedToCart ? 'var(--success)' : 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))') : 'var(--bg-dark)', color: canAdd ? 'var(--text-on-gold)' : 'var(--text-muted)', border: canAdd ? 'none' : '1px solid var(--border-color)', cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin",sans-serif', transition: 'all 0.3s', minWidth: 160 }}>
-                {addedToCart ? '✓ Added to Cart!' : canAdd ? '+ Add to Cart' : 'Select size & upload photo'}
+              <button onClick={handleAddToCart} disabled={!canAdd} style={{ flex: 1, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: canAdd ? 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))' : 'var(--bg-dark)', color: canAdd ? 'var(--text-on-gold)' : 'var(--text-muted)', border: canAdd ? 'none' : '1px solid var(--border-color)', cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin",sans-serif', transition: 'all 0.3s', minWidth: 160 }}>
+                {canAdd ? '+ Add to Cart' : 'Select size & upload photo'}
               </button>
-              {addedToCart && <Link href="/cart" style={{ padding: '16px 24px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--gold-primary)', color: 'var(--gold-light)' }}>View Cart →</Link>}
               {!canAdd && <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>Select a size and upload your photo to proceed.</span>}
             </div>
           </div>

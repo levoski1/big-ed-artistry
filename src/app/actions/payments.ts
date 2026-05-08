@@ -57,20 +57,23 @@ export async function verifyPayment(paymentId: string) {
   if (error) throw new Error(ERR.GENERIC)
 
   // Update order's amount_paid and payment_status
-  const { data: order } = await admin
+  const { data: order, error: orderError } = await admin
     .from('orders')
     .select('order_number, total_amount, amount_paid')
     .eq('id', payment.order_id)
     .single()
+  if (orderError) throw new Error(ERR.GENERIC)
 
   if (order) {
     const newAmountPaid = (order.amount_paid ?? 0) + payment.amount
-    const newAmountRemaining = order.total_amount - newAmountPaid
     const newPaymentStatus = newAmountPaid >= order.total_amount ? 'FULLY_PAID' : 'PARTIALLY_PAID'
-    await admin
+    const { error: updateError } = await admin
       .from('orders')
-      .update({ amount_paid: newAmountPaid, amount_remaining: newAmountRemaining, payment_status: newPaymentStatus })
+      .update({ amount_paid: newAmountPaid, payment_status: newPaymentStatus, status: 'in_progress' })
       .eq('id', payment.order_id)
+      .select()
+      .single()
+    if (updateError) throw new Error(ERR.GENERIC)
 
     // Fetch user profile for email
     const { data: profile } = await admin

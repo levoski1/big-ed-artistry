@@ -11,7 +11,7 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
   order_items?: Database['public']['Tables']['order_items']['Row'][]
 }
 
-const ORDER_STATUSES = ['pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled'] as const
+const ORDER_STATUSES = ['pending', 'in_progress', 'completed', 'canceled'] as const
 const FILTER_STATUSES = ['All', ...ORDER_STATUSES]
 const PAYMENT_FILTERS = ['All', 'NOT_PAID', 'PARTIALLY_PAID', 'FULLY_PAID']
 

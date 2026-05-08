@@ -59,8 +59,22 @@ export default function AdminPaymentsContent({ payments: initial }: { payments: 
     startTransition(async () => {
       try {
         const updated = await verifyPayment(id)
-        setPayments(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p))
-        setSelectedGroup(prev => prev ? prev.map(p => p.id === id ? { ...p, status: 'verified' } : p) : null)
+        // Recalculate the order's payment_status from the verified payment's amount
+        const verifiedPayment = payments.find(p => p.id === id)
+        const updatePayment = (p: Payment): Payment => {
+          if (p.id !== id) return p
+          if (!p.orders || !verifiedPayment) return { ...p, ...updated }
+          const newAmountPaid = (p.orders.amount_paid ?? 0) + verifiedPayment.amount
+          const newAmountRemaining = p.orders.total_amount - newAmountPaid
+          const newPaymentStatus = newAmountPaid >= p.orders.total_amount ? 'FULLY_PAID' : 'PARTIALLY_PAID'
+          return {
+            ...p,
+            ...updated,
+            orders: { ...p.orders, amount_paid: newAmountPaid, amount_remaining: newAmountRemaining, payment_status: newPaymentStatus },
+          }
+        }
+        setPayments(prev => prev.map(updatePayment))
+        setSelectedGroup(prev => prev ? prev.map(updatePayment) : null)
       } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed.') }
     })
   }
