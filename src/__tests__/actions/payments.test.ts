@@ -63,7 +63,7 @@ function setupAdminFrom(amountPaid = 0) {
     if (table === 'orders') {
       return {
         select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { ...mockOrder, amount_paid: amountPaid }, error: null })) })) })),
-        update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+        update: jest.fn(() => ({ eq: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) })) })),
       }
     }
     if (table === 'profiles') {
@@ -170,7 +170,7 @@ describe('verifyPayment — resilience', () => {
       if (table === 'orders') {
         return {
           select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: mockOrder, error: null })) })) })),
-          update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+          update: jest.fn(() => ({ eq: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) })) })),
         }
       }
       if (table === 'profiles') {
@@ -187,10 +187,16 @@ describe('verifyPayment — resilience', () => {
   })
 })
 
+function makeUpdateFn(capturedUpdate: Record<string, unknown>) {
+  return jest.fn((payload: Record<string, unknown>) => {
+    Object.assign(capturedUpdate, payload)
+    return { eq: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) })) }
+  })
+}
+
 describe('verifyPayment — payment_status written to DB', () => {
   it('writes PARTIALLY_PAID after partial payment', async () => {
-    setupAdminFrom(0) // 0 paid before, payment.amount = 25000 → partial
-    let capturedUpdate: Record<string, unknown> = {}
+    const capturedUpdate: Record<string, unknown> = {}
     mockAdminFrom.mockImplementation((table: string) => {
       if (table === 'payments') {
         return {
@@ -199,13 +205,9 @@ describe('verifyPayment — payment_status written to DB', () => {
         }
       }
       if (table === 'orders') {
-        const updateFn = jest.fn((payload: Record<string, unknown>) => {
-          capturedUpdate = payload
-          return { eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) }
-        })
         return {
           select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { ...mockOrder, amount_paid: 0 }, error: null })) })) })),
-          update: updateFn,
+          update: makeUpdateFn(capturedUpdate),
         }
       }
       if (table === 'profiles') {
@@ -225,7 +227,7 @@ describe('verifyPayment — payment_status written to DB', () => {
   })
 
   it('writes FULLY_PAID after full payment clears balance', async () => {
-    let capturedUpdate: Record<string, unknown> = {}
+    const capturedUpdate: Record<string, unknown> = {}
     mockAdminFrom.mockImplementation((table: string) => {
       if (table === 'payments') {
         return {
@@ -234,14 +236,10 @@ describe('verifyPayment — payment_status written to DB', () => {
         }
       }
       if (table === 'orders') {
-        const updateFn = jest.fn((payload: Record<string, unknown>) => {
-          capturedUpdate = payload
-          return { eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) }
-        })
         return {
           // 25000 already paid; payment.amount = 25000 → total = 50000 = FULLY_PAID
           select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { ...mockOrder, amount_paid: 25000 }, error: null })) })) })),
-          update: updateFn,
+          update: makeUpdateFn(capturedUpdate),
         }
       }
       if (table === 'profiles') {

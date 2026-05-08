@@ -103,7 +103,7 @@ function setupAdminFromForPayments(amountPaid = 0) {
     if (table === 'orders') {
       return {
         select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { ...mockOrder, amount_paid: amountPaid }, error: null })) })) })),
-        update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+        update: jest.fn(() => ({ eq: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) })) })),
       }
     }
     if (table === 'profiles') {
@@ -178,25 +178,25 @@ describe('updateOrderStatus — revalidatePath', () => {
 
   it('revalidates /dashboard after status update', async () => {
     const { updateOrderStatus } = await import('@/app/actions/orders')
-    await updateOrderStatus('order-1', 'confirmed')
+    await updateOrderStatus('order-1', 'in_progress')
     expect(revalidatedPaths()).toContain('/dashboard')
   })
 
   it('revalidates /dashboard/orders after status update', async () => {
     const { updateOrderStatus } = await import('@/app/actions/orders')
-    await updateOrderStatus('order-1', 'confirmed')
+    await updateOrderStatus('order-1', 'in_progress')
     expect(revalidatedPaths()).toContain('/dashboard/orders')
   })
 
   it('revalidates /admin/orders after status update', async () => {
     const { updateOrderStatus } = await import('@/app/actions/orders')
-    await updateOrderStatus('order-1', 'confirmed')
+    await updateOrderStatus('order-1', 'in_progress')
     expect(revalidatedPaths()).toContain('/admin/orders')
   })
 
   it('revalidates /admin/dashboard after status update', async () => {
     const { updateOrderStatus } = await import('@/app/actions/orders')
-    await updateOrderStatus('order-1', 'confirmed')
+    await updateOrderStatus('order-1', 'in_progress')
     expect(revalidatedPaths()).toContain('/admin/dashboard')
   })
 })

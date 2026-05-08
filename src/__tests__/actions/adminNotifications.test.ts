@@ -4,6 +4,7 @@
 
 import { updateOrderStatus } from '@/app/actions/orders'
 import { verifyPayment } from '@/app/actions/payments'
+import type { Database } from '@/lib/types/database'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import * as emailService from '@/lib/emailService'
 
@@ -66,12 +67,12 @@ describe('Admin Confirmation Notifications', () => {
       const sendOrderStatusUpdateMock = jest.fn().mockResolvedValue({ success: true })
       ;(emailService.sendOrderStatusUpdate as jest.Mock) = sendOrderStatusUpdateMock
 
-      await updateOrderStatus('order-1', 'confirmed')
+      await updateOrderStatus('order-1', 'in_progress')
 
       expect(sendOrderStatusUpdateMock).toHaveBeenCalledWith('customer@example.com', {
         name: 'John Doe',
         orderNumber: 'BEA-2024-001',
-        status: 'confirmed',
+        status: 'in_progress',
       })
     })
 
@@ -153,7 +154,7 @@ describe('Admin Confirmation Notifications', () => {
     })
 
     it('should send notification for all status transitions', async () => {
-      const statuses = ['pending', 'confirmed', 'in_progress', 'review', 'completed', 'cancelled']
+      const statuses = ['pending', 'in_progress', 'completed', 'canceled']
       const sendOrderStatusUpdateMock = jest.fn().mockResolvedValue({ success: true })
       ;(emailService.sendOrderStatusUpdate as jest.Mock) = sendOrderStatusUpdateMock
 
@@ -190,7 +191,7 @@ describe('Admin Confirmation Notifications', () => {
           return {}
         })
 
-        await updateOrderStatus('order-1', status as any)
+        await updateOrderStatus('order-1', status as Database['public']['Tables']['orders']['Update']['status'])
 
         expect(sendOrderStatusUpdateMock).toHaveBeenCalledWith('customer@example.com', {
           name: 'Test User',
@@ -451,14 +452,14 @@ describe('Admin Confirmation Notifications', () => {
       const sendOrderStatusUpdateMock = jest.fn().mockResolvedValue({ success: true })
       ;(emailService.sendOrderStatusUpdate as jest.Mock) = sendOrderStatusUpdateMock
 
-      await updateOrderStatus('order-1', 'confirmed')
+      await updateOrderStatus('order-1', 'in_progress')
 
       const callArgs = sendOrderStatusUpdateMock.mock.calls[0]
       expect(callArgs[0]).toBe('test@example.com')
       expect(callArgs[1]).toMatchObject({
         name: 'Test Customer',
         orderNumber: 'BEA-2024-001',
-        status: 'confirmed',
+        status: 'in_progress',
       })
     })
 
@@ -498,7 +499,7 @@ describe('Admin Confirmation Notifications', () => {
       const sendOrderStatusUpdateMock = jest.fn().mockResolvedValue({ success: true })
       ;(emailService.sendOrderStatusUpdate as jest.Mock) = sendOrderStatusUpdateMock
 
-      await updateOrderStatus('order-1', 'confirmed')
+      await updateOrderStatus('order-1', 'completed')
 
       const callArgs = sendOrderStatusUpdateMock.mock.calls[0]
       expect(callArgs[1].name).toBe('test@example.com')
