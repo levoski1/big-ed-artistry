@@ -85,7 +85,7 @@ export default function ProfilePageContent({ user, totalOrders, completedCount, 
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>My <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Profile</span></h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 40, alignItems: 'start' }}>
+      <div className="profile-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 40, alignItems: 'start' }}>
         {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border-color)' }}>
           <div style={{ background: 'var(--bg-card)', padding: '40px 28px', textAlign: 'center' }}>
@@ -171,6 +171,22 @@ export default function ProfilePageContent({ user, totalOrders, completedCount, 
           )}
         </div>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .profile-layout {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .profile-layout > div:last-child {
+            padding: 28px 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .profile-layout > div:last-child {
+            padding: 20px 16px !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -10,11 +10,13 @@ export const ERR = {
   INVALID_CREDENTIALS: 'Invalid email or password. Please try again.',
   EMAIL_NOT_CONFIRMED: 'Your email address has not been verified yet. Please check your inbox and click the verification link to activate your account.',
   EMAIL_EXISTS: 'An account with this email already exists. Please log in instead.',
+  EMAIL_ALREADY_CONFIRMED: 'This email is already confirmed. Please sign in.',
   WEAK_PASSWORD: 'Password must be at least 8 characters.',
   INVALID_EMAIL: 'Invalid email address.',
   INVALID_NAME: 'Please enter a valid name.',
   NOT_AUTHENTICATED: 'Please sign in to continue.',
   SESSION_EXPIRED: 'SESSION_EXPIRED',
+  LOGOUT_FAILED: 'Failed to sign out. Please try again.',
   // Rate limiting
   RATE_LIMITED: 'Too many attempts. Please wait a moment and try again.',
   // Orders
@@ -28,6 +30,8 @@ export const ERR = {
   UPLOAD_URL_FAILED: 'Failed to process the uploaded file. Please try again.',
   // Profile
   PROFILE_UPDATE_FAILED: 'Failed to update profile. Please try again.',
+  LOAD_FAILED: 'Failed to load data. Please try again.',
+  UPDATE_FAILED: 'Failed to update. Please try again.',
   // Generic
   GENERIC: 'Something went wrong. Please try again.',
   PERMISSION_DENIED: 'Permission denied. Please sign in and try again.',

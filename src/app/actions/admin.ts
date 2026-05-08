@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
+import { toUserMessage, ERR } from '@/lib/errorMessages'
 
 export async function getAdminStats() {
   const admin = createAdminClient()
@@ -38,24 +39,29 @@ export async function getAdminStats() {
 }
 
 export async function getAllCustomers() {
-  const admin = createAdminClient()
-  const { data: profiles, error } = await admin
-    .from('profiles')
-    .select('*')
-    .eq('role', 'customer')
-    .order('created_at', { ascending: false })
-  if (error) throw new Error(error.message)
+  try {
+    const admin = createAdminClient()
+    const { data: profiles, error } = await admin
+      .from('profiles')
+      .select('*')
+      .eq('role', 'customer')
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(error.message)
 
-  // Fetch orders separately and attach
-  const { data: orders } = await admin
-    .from('orders')
-    .select('id, user_id, order_number, total_amount, amount_paid, status, payment_status, created_at')
-    .order('created_at', { ascending: false })
+    // Fetch orders separately and attach
+    const { data: orders } = await admin
+      .from('orders')
+      .select('id, user_id, order_number, total_amount, amount_paid, status, payment_status, created_at')
+      .order('created_at', { ascending: false })
 
-  return (profiles ?? []).map(p => ({
-    ...p,
-    orders: (orders ?? []).filter(o => o.user_id === p.id),
-  }))
+    return (profiles ?? []).map(p => ({
+      ...p,
+      orders: (orders ?? []).filter(o => o.user_id === p.id),
+    }))
+  } catch (e) {
+    console.error('[getAllCustomers]', e instanceof Error ? e.message : e)
+    throw new Error(ERR.LOAD_FAILED)
+  }
 }
 
 export async function updateOrderPaymentStatus(
@@ -68,20 +74,25 @@ export async function updateOrderPaymentStatus(
     payment_status: paymentStatus,
     ...(amountPaid !== undefined ? { amount_paid: amountPaid } : {}),
   }
-  const { data, error } = await admin
-    .from('orders')
-    .update(updates as any)
-    .eq('id', orderId)
-    .select()
-    .single()
-  if (error) throw new Error(error.message)
+  try {
+    const { data, error } = await admin
+      .from('orders')
+      .update(updates as any)
+      .eq('id', orderId)
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
 
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/orders')
-  revalidatePath('/dashboard/payments')
-  revalidatePath('/admin/orders')
-  revalidatePath('/admin/payments')
-  revalidatePath('/admin/dashboard')
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/orders')
+    revalidatePath('/dashboard/payments')
+    revalidatePath('/admin/orders')
+    revalidatePath('/admin/payments')
+    revalidatePath('/admin/dashboard')
 
-  return data
+    return data
+  } catch (e) {
+    console.error('[updateOrderPaymentStatus]', e instanceof Error ? e.message : e)
+    throw new Error(ERR.UPDATE_FAILED)
+  }
 }

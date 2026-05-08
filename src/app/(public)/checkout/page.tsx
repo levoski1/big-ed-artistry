@@ -119,7 +119,11 @@ export default function CheckoutPage() {
         subtotal: discountedSubtotal,
         total_amount: finalTotal,
         notes: `Customer: ${name}, Phone: ${phone}${discountAmount > 0 ? `, Discount: ${discountLabel} (−₦${discountAmount.toLocaleString()})` : ''}`,
-      }, items, amountDue, paymentType as 'full' | 'partial')
+      }, items, amountDue, paymentType as 'full' | 'partial', discountAmount > 0 ? {
+        originalSubtotal: grandTotal,
+        amount: discountAmount,
+        label: discountLabel,
+      } : undefined)
 
       const receiptFormData = new FormData()
       receiptFormData.append('file', receipt)

@@ -5,37 +5,42 @@ import { createServerClient } from '@supabase/ssr'
 import AdminSidebar from '@/components/dashboard/AdminSidebar'
 
 export default async function AdminProtectedLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch { /* ignore */ }
+  try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll(cookiesToSet) {
+            try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch { /* ignore */ }
+          },
         },
-      },
-    }
-  )
+      }
+    )
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/admin')
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) redirect('/admin')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', session.user.id)
-    .single()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
 
-  if (profile?.role !== 'admin') redirect('/dashboard')
+    if (profile?.role !== 'admin') redirect('/dashboard')
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <AdminSidebar />
-      <div className="admin-content" style={{ flex: 1, overflow: 'auto' }}>
-        {children}
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <AdminSidebar />
+        <div className="admin-content" style={{ flex: 1, overflow: 'auto' }}>
+          {children}
+        </div>
       </div>
-    </div>
-  )
+    )
+  } catch (e) {
+    console.error('[admin/layout] session/profile check failed:', e instanceof Error ? e.message : e)
+    redirect('/admin')
+  }
 }

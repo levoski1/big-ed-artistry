@@ -37,9 +37,9 @@ export default function OrdersPageContent({ orders, paymentMap }: { orders: Orde
         <Link href="/custom-artwork" style={{ padding: '12px 24px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none' }}>+ New Order</Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div className="orders-layout" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 80px', padding: '14px 24px', borderBottom: '1px solid var(--border-color)' }}>
+          <div className="orders-header" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 80px', padding: '14px 24px', borderBottom: '1px solid var(--border-color)' }}>
             {['Order', 'Total', 'Paid', 'Status', 'Payment', ''].map(h => (
               <div key={h} style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
             ))}
@@ -52,7 +52,7 @@ export default function OrdersPageContent({ orders, paymentMap }: { orders: Orde
               <Link href="/custom-artwork" style={{ display: 'inline-flex', marginTop: 20, padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', textDecoration: 'none' }}>Place First Order</Link>
             </div>
           ) : orders.map(order => (
-            <div key={order.id} onClick={() => setSelected(selected?.id === order.id ? null : order)} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 80px', padding: '20px 24px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }}>
+            <div key={order.id} onClick={() => setSelected(selected?.id === order.id ? null : order)} className="orders-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 80px', padding: '20px 24px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{order.order_number}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(order.created_at)}</div>
@@ -61,7 +61,7 @@ export default function OrdersPageContent({ orders, paymentMap }: { orders: Orde
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatPrice(order.amount_paid)}</div>
               <StatusBadge status={order.status} />
               <StatusBadge status={getPaymentDisplay(order)} />
-              <button style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-muted)', padding: '6px 12px', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif' }}>View</button>
+              <button className="order-view-btn" style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-muted)', padding: '6px 12px', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif' }}>View</button>
             </div>
           ))}
         </div>
@@ -136,6 +136,38 @@ export default function OrdersPageContent({ orders, paymentMap }: { orders: Orde
           </div>
         )}
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .orders-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .orders-header {
+            display: none !important;
+          }
+          .orders-row {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            padding: 16px 20px !important;
+          }
+          .orders-row > div {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding: 3px 0 !important;
+          }
+          .order-view-btn {
+            width: 100% !important;
+            margin-top: 4px !important;
+            text-align: center !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .orders-row {
+            padding: 14px 16px !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
