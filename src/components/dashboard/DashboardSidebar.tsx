@@ -11,6 +11,8 @@ const navItems = [
   { icon: '✦', label: 'Upload Payment', href: '/dashboard/payments' },
   { icon: '◉', label: 'My Profile', href: '/dashboard/profile' },
   { icon: '🛍️', label: 'Store', href: '/store' },
+  { icon: '✏️', label: 'Custom Artwork', href: '/custom-artwork' },
+  { icon: '🖼️', label: 'Photo Enlargement', href: '/photo-enlarge' },
 ]
 
 export default function DashboardSidebar() {

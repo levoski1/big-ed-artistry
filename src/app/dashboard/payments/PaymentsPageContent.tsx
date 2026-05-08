@@ -2,20 +2,23 @@
 import { useState } from 'react'
 import { formatPrice, formatDate } from '@/lib/tokens'
 import { StatusBadge, FormGroup, Select } from '@/components/ui'
+import OrderSuccessModal from '@/components/ui/OrderSuccessModal'
 import { uploadPaymentReceipt } from '@/app/actions/uploads'
 import { submitPayment } from '@/app/actions/payments'
 import type { Database } from '@/lib/types/database'
 
 type Order = Database['public']['Tables']['orders']['Row']
 type Upload = Database['public']['Tables']['uploads']['Row']
+type Profile = Database['public']['Tables']['profiles']['Row']
 
 interface Props {
   orders: Order[]
   paymentUploads: Upload[]
   artworkUploads: Upload[]
+  user: Profile | null
 }
 
-export default function PaymentsPageContent({ orders, paymentUploads, artworkUploads }: Props) {
+export default function PaymentsPageContent({ orders, paymentUploads, artworkUploads, user }: Props) {
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full')
   const [amount, setAmount] = useState('')
@@ -24,6 +27,7 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null)
 
   const unpaidOrders = orders.filter(o => o.payment_status !== 'FULLY_PAID')
   const selectedOrder = orders.find(o => o.id === selectedOrderId)
@@ -66,6 +70,7 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
         payment_type: paymentType,
         receipt_url: upload.file_url,
       })
+      setSubmittedOrder(selectedOrder ?? null)
       setSubmitted(true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Submission failed.')
@@ -74,21 +79,32 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
     }
   }
 
-  if (submitted) {
-    return (
-      <div style={{ padding: 40 }}>
-        <div style={{ maxWidth: 560, textAlign: 'center', margin: '80px auto' }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>✦</div>
-          <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 36, marginBottom: 16 }}>Payment Submitted</h2>
-          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 32 }}>Your payment proof has been received. Big Ed will verify it within 24 hours.</p>
-          <button onClick={() => { setSubmitted(false); setFile(null); setSelectedOrderId(''); setAmount('') }} style={{ padding: '12px 28px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif' }}>Upload Another</button>
-        </div>
-      </div>
-    )
+  const resetForm = () => {
+    setSubmitted(false)
+    setSubmittedOrder(null)
+    setFile(null)
+    setSelectedOrderId('')
+    setAmount('')
   }
 
+  const parsedAmountForModal = Number(amount)
+  const amountRemainingForModal = submittedOrder ? Math.max(0, submittedOrder.total_amount - (submittedOrder.amount_paid + parsedAmountForModal)) : 0
+
   return (
-    <div style={{ padding: 40 }}>
+    <>
+      {submitted && submittedOrder && (
+        <OrderSuccessModal
+          name={user?.full_name ?? 'Customer'}
+          phone={user?.phone ?? '—'}
+          orderNumber={submittedOrder.order_number}
+          paymentType={paymentType}
+          amountDue={Number(amount)}
+          amountRemaining={amountRemainingForModal}
+          onClose={resetForm}
+          context="payment"
+        />
+      )}
+      <div style={{ padding: 40 }}>
       <div style={{ marginBottom: 40, paddingBottom: 28, borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Customer Portal</div>
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>Upload <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Payment Proof</span></h1>
@@ -274,5 +290,6 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
         </div>
       </div>
     </div>
+    </>
   )
 }

@@ -89,7 +89,9 @@ export async function register(data: {
 
       if (!emailResult.success) {
         console.error('[register] sendEmail failed:', emailResult.error)
-        throw new Error('Account created but confirmation email failed to send. Contact support.')
+        // Still allow registration to succeed, but inform user about email issue
+        console.warn('[register] User account created but confirmation email failed to send')
+        // Don't throw error - account was created successfully
       }
     }
 

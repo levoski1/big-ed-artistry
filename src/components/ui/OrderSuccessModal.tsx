@@ -15,11 +15,13 @@ export interface OrderSuccessModalProps {
   variant?: 'success' | 'error'
   /** Error message shown when variant='error' */
   errorMessage?: string
+  /** Context: 'order' (default) for order confirmation, 'payment' for payment submission */
+  context?: 'order' | 'payment'
 }
 
 export default function OrderSuccessModal({
   name, phone, orderNumber, paymentType, amountDue, amountRemaining,
-  onClose, variant = 'success', errorMessage,
+  onClose, variant = 'success', errorMessage, context = 'order',
 }: OrderSuccessModalProps) {
   return (
     <div data-testid="success-modal" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -72,11 +74,18 @@ export default function OrderSuccessModal({
           <>
             <div style={{ fontSize: 52, marginBottom: 16, color: 'var(--gold-light)' }}>✦</div>
             <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, marginBottom: 10 }}>
-              Order <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Confirmed!</span>
+              {context === 'payment' ? (
+                <>Payment <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Submitted!</span></>
+              ) : (
+                <>Order <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Confirmed!</span></>
+              )}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>
-              Thank you, {name}! Order <strong style={{ color: 'var(--gold-light)' }}>{orderNumber}</strong> has been received.
-              Big Ed will review your payment and begin work within 24 hours. You&apos;ll be contacted on {phone}.
+              {context === 'payment' ? (
+                <>Thank you, {name}! Your payment for order <strong style={{ color: 'var(--gold-light)' }}>{orderNumber}</strong> has been received. Big Ed will verify it within 24 hours.</>
+              ) : (
+                <>Thank you, {name}! Order <strong style={{ color: 'var(--gold-light)' }}>{orderNumber}</strong> has been received. Big Ed will review your payment and begin work within 24 hours. You&apos;ll be contacted on {phone}.</>
+              )}
             </p>
 
             {/* Order details */}

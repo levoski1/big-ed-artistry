@@ -23,11 +23,12 @@ function LoginForm() {
   const [unverified, setUnverified] = useState(false)
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
 
-  // Auto-redirect if already authenticated
+  // Auto-redirect if already authenticated — use getUser() to validate against
+  // the server so a stale cookie for a deleted user doesn't cause a redirect loop
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace(next)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace(next)
     })
   }, [router, next])
 

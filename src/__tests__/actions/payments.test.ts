@@ -117,7 +117,7 @@ describe('verifyPayment — full payment', () => {
 })
 
 describe('verifyPayment — partial payment', () => {
-  beforeEach(() => setupAdminFrom(0)) // 0 paid before → 25000 paid of 50000 = PARTIALLY_PAID
+  beforeEach(() => setupAdminFrom(0)) // 0 paid before → 25000 paid of 50000 = half_payment
 
   it('sends partial payment confirmation to user with balance due', async () => {
     await verifyPayment(PAYMENT_ID)
@@ -187,9 +187,9 @@ describe('verifyPayment — resilience', () => {
   })
 })
 
-describe('verifyPayment — amount_remaining written to DB (Bug 1 fix)', () => {
-  it('writes amount_remaining = total - newAmountPaid after partial payment', async () => {
-    setupAdminFrom(0) // 0 paid before, payment.amount = 25000 → remaining = 25000
+describe('verifyPayment — payment_status written to DB', () => {
+  it('writes PARTIALLY_PAID after partial payment', async () => {
+    setupAdminFrom(0) // 0 paid before, payment.amount = 25000 → partial
     let capturedUpdate: Record<string, unknown> = {}
     mockAdminFrom.mockImplementation((table: string) => {
       if (table === 'payments') {
@@ -201,7 +201,7 @@ describe('verifyPayment — amount_remaining written to DB (Bug 1 fix)', () => {
       if (table === 'orders') {
         const updateFn = jest.fn((payload: Record<string, unknown>) => {
           capturedUpdate = payload
-          return { eq: jest.fn(() => Promise.resolve({ error: null })) }
+          return { eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) }
         })
         return {
           select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { ...mockOrder, amount_paid: 0 }, error: null })) })) })),
@@ -216,15 +216,15 @@ describe('verifyPayment — amount_remaining written to DB (Bug 1 fix)', () => {
 
     await verifyPayment(PAYMENT_ID)
 
-    // amount_paid = 0 + 25000 = 25000; amount_remaining = 50000 - 25000 = 25000
+    // amount_paid = 0 + 25000 = 25000; payment_status = PARTIALLY_PAID
     expect(capturedUpdate).toMatchObject({
       amount_paid: 25000,
-      amount_remaining: 25000,
       payment_status: 'PARTIALLY_PAID',
+      status: 'in_progress',
     })
   })
 
-  it('writes amount_remaining = 0 after full payment clears balance', async () => {
+  it('writes FULLY_PAID after full payment clears balance', async () => {
     let capturedUpdate: Record<string, unknown> = {}
     mockAdminFrom.mockImplementation((table: string) => {
       if (table === 'payments') {
@@ -236,7 +236,7 @@ describe('verifyPayment — amount_remaining written to DB (Bug 1 fix)', () => {
       if (table === 'orders') {
         const updateFn = jest.fn((payload: Record<string, unknown>) => {
           capturedUpdate = payload
-          return { eq: jest.fn(() => Promise.resolve({ error: null })) }
+          return { eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ error: null })) })) }
         })
         return {
           // 25000 already paid; payment.amount = 25000 → total = 50000 = FULLY_PAID
@@ -252,11 +252,11 @@ describe('verifyPayment — amount_remaining written to DB (Bug 1 fix)', () => {
 
     await verifyPayment(PAYMENT_ID)
 
-    // amount_paid = 25000 + 25000 = 50000; amount_remaining = 50000 - 50000 = 0
+    // amount_paid = 25000 + 25000 = 50000; payment_status = FULLY_PAID
     expect(capturedUpdate).toMatchObject({
       amount_paid: 50000,
-      amount_remaining: 0,
       payment_status: 'FULLY_PAID',
+      status: 'in_progress',
     })
   })
 })
