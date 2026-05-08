@@ -1,3 +1,5 @@
+import { url } from './appUrl'
+
 // ─── Design tokens (email-safe, no CSS variables) ────────────────────────
 const T = {
   bgDark: '#0F0E0C',
@@ -45,7 +47,7 @@ function layout(body: string): string {
               © ${new Date().getFullYear()} Big Ed Artistry · Hand-drawn portraits crafted with care
             </p>
             <p style="margin:6px 0 0;font-size:12px;color:${T.textSecondary};">
-              Questions? Reply to this email or visit <a href="https://bigEdartistry.com/contact" style="color:${T.goldLight};text-decoration:none;">bigEdartistry.com</a>
+              Questions? Reply to this email or visit <a href="${url('/contact')}" style="color:${T.goldLight};text-decoration:none;">bigEdartistry.com</a>
             </p>
           </td>
         </tr>
@@ -175,7 +177,7 @@ export function welcomeTemplate(data: WelcomeData): string {
     ${heading('Welcome to Big Ed Artistry')}
     ${paragraph(`Hi <strong>${data.name}</strong>,`)}
     ${paragraph('Your account has been created. You can now place commissions, track your orders, and upload payment proof — all from your dashboard.')}
-    ${ctaButton('Go to Dashboard', 'https://bigEdartistry.com/dashboard')}
+    ${ctaButton('Go to Dashboard', url('/dashboard'))}
     ${divider()}
     ${paragraph(`<span style="color:${T.textSecondary};font-size:13px;">If you didn't create this account, you can safely ignore this email.</span>`)}
   `)
@@ -208,7 +210,7 @@ export function orderConfirmationTemplate(data: OrderConfirmationData): string {
     ])}
     ${paymentNote}
     ${paragraph("We'll notify you once your order is in progress. You can track it anytime from your dashboard.")}
-    ${ctaButton('Track Order', `https://bigEdartistry.com/dashboard/orders`)}
+    ${ctaButton('Track Order', url('/dashboard/orders'))}
   `)
 }
 
@@ -235,7 +237,7 @@ export function paymentConfirmationTemplate(data: PaymentConfirmationData): stri
     ${paragraph(`Hi <strong>${data.name}</strong>, we've verified your payment.`)}
     ${infoTable(rows)}
     ${statusNote}
-    ${ctaButton('View Order', `https://bigEdartistry.com/dashboard/orders`)}
+    ${ctaButton('View Order', url('/dashboard/orders'))}
   `)
 }
 
@@ -252,7 +254,7 @@ export function paymentReminderTemplate(data: PaymentReminderData): string {
       ['Balance Due', `₦${data.balanceDue.toLocaleString()}`],
     ])}
     ${dueLine}
-    ${ctaButton('Upload Payment Proof', `https://bigEdartistry.com/dashboard/payments`)}
+    ${ctaButton('Upload Payment Proof', url('/dashboard/payments'))}
   `)
 }
 
@@ -272,7 +274,7 @@ export function orderStatusUpdateTemplate(data: OrderStatusUpdateData): string {
       ['Order Number', data.orderNumber],
       ['New Status', label],
     ])}
-    ${ctaButton('View Order', `https://bigEdartistry.com/dashboard/orders`)}
+    ${ctaButton('View Order', url('/dashboard/orders'))}
   `)
 }
 
@@ -287,7 +289,7 @@ export function adminNewOrderTemplate(data: AdminNewOrderData): string {
       ['Service', data.service],
       ['Total', `₦${data.total.toLocaleString()}`],
     ])}
-    ${ctaButton('View in Admin', `https://bigEdartistry.com/admin/orders`)}
+    ${ctaButton('View in Admin', url('/admin/orders'))}
   `)
 }
 
@@ -301,7 +303,7 @@ export function adminPaymentReceivedTemplate(data: AdminPaymentReceivedData): st
       ['Amount', `₦${data.amount.toLocaleString()}`],
       ['Type', data.isPartial ? 'Partial' : 'Full'],
     ])}
-    ${ctaButton('Verify Payment', `https://bigEdartistry.com/admin/payments`)}
+    ${ctaButton('Verify Payment', url('/admin/payments'))}
   `)
 }
 
