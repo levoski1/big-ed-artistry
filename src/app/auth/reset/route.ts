@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAppUrl } from '@/lib/appUrl'
 
 /**
  * Handles the Supabase recovery link redirect.
@@ -8,7 +9,8 @@ import { createClient } from '@/lib/supabase/server'
  * On failure we redirect to /forgot-password?error=1 so the user can request a new link.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  const baseUrl = getAppUrl() || new URL(request.url).origin
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
 
@@ -21,10 +23,10 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // Session is now set in the cookie — redirect to the password form
-      return NextResponse.redirect(`${origin}/reset-password`)
+      return NextResponse.redirect(`${baseUrl}/reset-password`)
     }
   }
 
   // Invalid or expired token
-  return NextResponse.redirect(`${origin}/forgot-password?error=1`)
+  return NextResponse.redirect(`${baseUrl}/forgot-password?error=1`)
 }

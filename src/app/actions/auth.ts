@@ -75,7 +75,7 @@ export async function register(data: {
 
       if (linkError || !linkData?.properties?.action_link) {
         console.error('[register] generateLink failed:', linkError?.message)
-        throw new Error('Failed to generate confirmation link. Please try again.')
+        throw new Error(ERR.CONFIRM_LINK_FAILED)
       }
 
       const emailResult = await sendEmail({
@@ -114,15 +114,15 @@ export async function resendConfirmation(email: string) {
     const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
     if (listError) throw new Error(toUserMessage(listError))
     const user = users.find(u => u.email === email)
-    if (!user) throw new Error('No account found with that email address.')
-    if (user.email_confirmed_at) throw new Error('This email is already confirmed. Please sign in.')
+    if (!user) throw new Error(ERR.GENERIC)
+    if (user.email_confirmed_at) throw new Error(ERR.EMAIL_ALREADY_CONFIRMED)
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: { redirectTo: `${siteUrl}/auth/confirm` },
     })
-    if (linkError || !linkData?.properties?.action_link) throw new Error('Failed to generate confirmation link.')
+    if (linkError || !linkData?.properties?.action_link) throw new Error(ERR.CONFIRM_LINK_FAILED)
 
     const name = user.user_metadata?.full_name ?? email
     await sendEmail({
@@ -152,8 +152,9 @@ export async function login(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
 
     if (error) {
-      // Distinguish unverified email from bad credentials — both are auth errors
-      if (/email not confirmed/i.test(error.message)) throw new Error(ERR.EMAIL_NOT_CONFIRMED)
+      if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+        throw new Error(ERR.EMAIL_NOT_CONFIRMED)
+      }
       throw new Error(ERR.INVALID_CREDENTIALS)
     }
     return data
@@ -167,9 +168,17 @@ export async function login(email: string, password: string) {
 }
 
 export async function logout() {
-  const supabase = await createClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) throw new Error(error.message)
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error('[logout]', error.message)
+      throw new Error(ERR.LOGOUT_FAILED)
+    }
+  } catch (e) {
+    if (e instanceof Error && Object.values(ERR).includes(e.message as any)) throw e
+    throw new Error(ERR.LOGOUT_FAILED)
+  }
   redirect('/')
 }
 
@@ -206,7 +215,7 @@ export async function getCurrentUser() {
 export async function updateProfile(data: { full_name?: string; phone?: string }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+  if (!user) throw new Error(ERR.NOT_AUTHENTICATED)
 
   const { data: profile, error } = await supabase
     .from('profiles')
@@ -262,8 +271,8 @@ export async function forgotPassword(email: string): Promise<void> {
       subject: 'Reset your Big Ed Artistry password',
       html: passwordResetTemplate({ name, resetUrl: linkData.properties.action_link }),
     })
-  } catch {
-    // Swallow all errors — never reveal internal state
+  } catch (e) {
+    console.error('[forgotPassword]', e instanceof Error ? e.message : e)
   }
 }
 

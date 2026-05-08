@@ -109,6 +109,9 @@ export interface OrderConfirmationData {
   service: string
   size: string
   medium: string
+  subtotal?: number
+  discountAmount?: number
+  discountLabel?: string
   total: number
   amountPaid: number
   isPartial: boolean
@@ -190,6 +193,23 @@ export function orderConfirmationTemplate(data: OrderConfirmationData): string {
       </table>`
     : infoTable([['Service', data.service], ['Size', data.size], ['Medium', data.medium]])
 
+  const detailRows: string[] = [
+    infoRow('Order Number', data.orderNumber),
+  ]
+
+  const hasDiscount = data.subtotal != null && data.discountAmount != null && data.discountAmount > 0
+  if (hasDiscount) {
+    detailRows.push(infoRow('Subtotal', `₦${data.subtotal!.toLocaleString()}`))
+    detailRows.push(`<tr>
+      <td style="padding:6px 0;color:#10B981;font-size:13px;width:40%;">${data.discountLabel ?? 'Bulk Discount'}</td>
+      <td style="padding:6px 0;color:#10B981;font-size:13px;font-weight:600;">−₦${data.discountAmount!.toLocaleString()}</td>
+    </tr>`)
+  }
+
+  detailRows.push(infoRow('Total', `₦${data.total.toLocaleString()}`))
+  detailRows.push(infoRow('Amount Paid', `₦${data.amountPaid.toLocaleString()}`))
+  detailRows.push(infoRow('Est. Delivery', data.estimatedDelivery))
+
   const paymentNote = data.isPartial
     ? `<p style="margin:0 0 14px;padding:12px 16px;background:#1f1c18;border-left:3px solid ${T.gold};color:${T.textSecondary};font-size:13px;">
         You've paid a <strong style="color:${T.goldLight};">50% deposit (₦${data.amountPaid.toLocaleString()})</strong>. The remaining balance of <strong style="color:${T.goldLight};">₦${(data.balanceDue ?? 0).toLocaleString()}</strong> must be completed before delivery.
@@ -202,12 +222,9 @@ export function orderConfirmationTemplate(data: OrderConfirmationData): string {
     ${heading('Order Confirmed')}
     ${paragraph(`Hi <strong>${data.name}</strong>, your order has been received.`)}
     ${itemsHtml}
-    ${infoTable([
-      ['Order Number', data.orderNumber],
-      ['Total', `₦${data.total.toLocaleString()}`],
-      ['Amount Paid', `₦${data.amountPaid.toLocaleString()}`],
-      ['Est. Delivery', data.estimatedDelivery],
-    ])}
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0;">
+      ${detailRows.join('')}
+    </table>
     ${paymentNote}
     ${paragraph("We'll notify you once your order is in progress. You can track it anytime from your dashboard.")}
     ${ctaButton('Track Order', url('/dashboard/orders'))}

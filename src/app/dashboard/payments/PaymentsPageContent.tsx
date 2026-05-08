@@ -110,7 +110,7 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>Upload <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>Payment Proof</span></h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 40, alignItems: 'start' }}>
+      <div className="payments-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 40, alignItems: 'start' }}>
         {/* Form */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 48 }}>
           <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 28, marginBottom: 8 }}>Submit Your Payment</h2>
@@ -290,6 +290,22 @@ export default function PaymentsPageContent({ orders, paymentUploads, artworkUpl
         </div>
       </div>
     </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .payments-layout {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .payments-layout > div:first-child {
+            padding: 28px 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .payments-layout > div:first-child {
+            padding: 20px 16px !important;
+          }
+        }
+      `}</style>
     </>
   )
 }

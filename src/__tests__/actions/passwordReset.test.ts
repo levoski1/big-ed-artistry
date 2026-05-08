@@ -9,6 +9,7 @@
 import { forgotPassword, resetPassword } from '@/app/actions/auth'
 import { _clearStore } from '@/lib/rateLimit'
 import { ERR } from '@/lib/errorMessages'
+import { resetAppUrlCache } from '@/lib/appUrl'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
@@ -49,8 +50,14 @@ jest.mock('@/lib/emailTemplates', () => ({
 
 // ─── Setup ────────────────────────────────────────────────────────────────
 
-beforeAll(() => { process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000' })
-afterAll(() => { delete process.env.NEXT_PUBLIC_SITE_URL })
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
+  resetAppUrlCache()
+})
+afterAll(() => {
+  delete process.env.NEXT_PUBLIC_SITE_URL
+  resetAppUrlCache()
+})
 
 beforeEach(() => {
   _clearStore()

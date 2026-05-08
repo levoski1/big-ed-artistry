@@ -29,8 +29,16 @@ export async function middleware(request: NextRequest) {
   // Use getUser() to validate the session against the Supabase server.
   // getSession() only reads the local cookie and will trust a stale token
   // for a deleted user, causing an infinite redirect loop.
-  const { data: { user } } = await supabase.auth.getUser()
-  const session = user ? true : null
+  let user = null
+  let session = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+    session = user ? true : null
+  } catch (e) {
+    console.error('[middleware] getUser() failed:', e instanceof Error ? e.message : e)
+    session = null
+  }
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users away from protected routes
@@ -70,7 +78,8 @@ export async function middleware(request: NextRequest) {
       if (profile?.role !== 'admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
-    } catch {
+    } catch (e) {
+      console.error('[middleware] admin role check failed:', e instanceof Error ? e.message : e)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

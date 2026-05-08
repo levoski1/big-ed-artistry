@@ -16,7 +16,8 @@ export async function createOrder(
   order: Omit<OrderInsert, 'order_number' | 'user_id' | 'amount_paid'>,
   items: Omit<OrderItemInsert, 'order_id'>[],
   amountPaid = 0,
-  paymentType: 'full' | 'partial' = 'full'
+  paymentType: 'full' | 'partial' = 'full',
+  discount?: { originalSubtotal: number; amount: number; label: string }
 ): Promise<OrderRow> {
   try {
     const supabase = await createClient()
@@ -74,6 +75,9 @@ export async function createOrder(
       service,
       size: firstItem?.size_label ?? '—',
       medium: firstItem?.canvas_option ?? '—',
+      subtotal: discount?.originalSubtotal,
+      discountAmount: discount?.amount,
+      discountLabel: discount?.label,
       total: newOrder.total_amount,
       amountPaid: amountPaidForEmail,
       isPartial,
