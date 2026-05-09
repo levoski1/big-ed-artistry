@@ -26,10 +26,11 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
-      await register({ email, password, full_name: `${firstName} ${lastName}`.trim(), phone: phone || undefined })
+      const result = await register({ email, password, full_name: `${firstName} ${lastName}`.trim(), phone: phone || undefined })
+      if ('error' in result) { setError(result.error); setLoading(false); return }
       setDone(true)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Registration failed.')
+      setError(e instanceof Error && e.message ? e.message : 'Registration failed. Please try again.')
       setLoading(false)
     }
   }

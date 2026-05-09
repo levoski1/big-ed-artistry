@@ -4,6 +4,7 @@ import PublicLayout from '@/components/layout/PublicLayout'
 import { formatPrice } from '@/lib/tokens'
 import { useCart } from '@/context/CartContext'
 import { calculateTotal, canvasOptions, frameOptions, glassOptions, sizeOptions } from '@/lib/customArtwork'
+import { uploadArtworkReference } from '@/app/actions/uploads'
 
 const canvasPreviewMap: Record<string, string> = { normal:'/canvas/normal_canvas.jpeg', smooth:'/canvas/smooth_canvas.jpeg', crystal:'/canvas/crystal_canvas.jpeg' }
 const framePreviewMap: Record<string, string> = { small:'/Frame/small_frame.jpeg', medium:'/Frame/medium_frame.jpeg', large:'/Frame/large_frame.jpeg', frameless:'/Frame/frameless_canvas1.jpeg', premium:'/Frame/premium_frame.jpeg' }
@@ -36,6 +37,8 @@ export default function PhotoEnlargePage() {
   const [customMessage, setCustomMessage] = useState('')
   const [occasion, setOccasion] = useState('Birthday')
   const [addedToCart, setAddedToCart] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [addError, setAddError] = useState('')
 
   const canvas = canvasOptions.find(o => o.id === canvasId) ?? canvasOptions[canvasOptions.length - 1]
   const frame = frameOptions.find(o => o.id === frameId) ?? frameOptions[0]
@@ -73,9 +76,22 @@ export default function PhotoEnlargePage() {
 
   const canAdd = Boolean(photo && selectedSize)
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!canAdd || !photo || !selectedSize) return
-    addArtwork({ id:`ENL-${Date.now()}`, artworkType:'enlargement', sizeLabel:selectedSize.label, width:selectedSize.width, height:selectedSize.height, area, canvasId, canvasName:canvas.name, frameId, frameName:frame.name, glassId, glassName:glass.name, writeUpType, customMessage, occasion, imageName:photo.name, receiptName:'', address:'', phoneNumber:'', busStop:'', location:'none', paymentType:'full', basePrice, canvasPrice, framePrice, glassPrice, deliveryFee:0, totalPrice, createdAt:new Date().toISOString() })
+    setAddingToCart(true)
+    setAddError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', photo)
+      const upload = await uploadArtworkReference(formData)
+
+      addArtwork({ id:`ENL-${Date.now()}`, artworkType:'enlargement', sizeLabel:selectedSize.label, width:selectedSize.width, height:selectedSize.height, area, canvasId, canvasName:canvas.name, frameId, frameName:frame.name, glassId, glassName:glass.name, writeUpType, customMessage, occasion, imageName:photo.name, imageUrl:upload.file_url, uploadId:upload.id, receiptName:'', address:'', phoneNumber:'', busStop:'', location:'none', paymentType:'full', basePrice, canvasPrice, framePrice, glassPrice, deliveryFee:0, totalPrice, createdAt:new Date().toISOString() })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to upload image'
+      setAddError(msg)
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
   return (
@@ -201,9 +217,10 @@ export default function PhotoEnlargePage() {
 
             {/* CTA */}
             <div style={{ background:'var(--bg-card)', padding:'24px 32px', display:'flex', gap:14, flexWrap:'wrap', alignItems:'center' }}>
-              <button onClick={handleAddToCart} disabled={!canAdd} style={{ flex:1, padding:'15px', fontSize:12, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', background:canAdd?'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))':' var(--bg-dark)', color:canAdd?'var(--text-on-gold)':'var(--text-muted)', border:canAdd?'none':'1px solid var(--border-color)', cursor:canAdd?'pointer':'not-allowed', fontFamily:'"Libre Franklin",sans-serif', transition:'all 0.3s' }}>
-                {canAdd?'+ Add to Cart':'Upload photo & select size first'}
+              <button onClick={handleAddToCart} disabled={!canAdd || addingToCart} style={{ flex:1, padding:'15px', fontSize:12, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', background:canAdd&&!addingToCart?'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))':' var(--bg-dark)', color:canAdd&&!addingToCart?'var(--text-on-gold)':'var(--text-muted)', border:canAdd&&!addingToCart?'none':'1px solid var(--border-color)', cursor:canAdd&&!addingToCart?'pointer':'not-allowed', fontFamily:'"Libre Franklin",sans-serif', transition:'all 0.3s' }}>
+                {addingToCart ? 'Uploading…' : canAdd ? '+ Add to Cart' : 'Upload photo & select size first'}
               </button>
+              {addError && <div style={{ width:'100%', padding:'10px 14px', background:'rgba(220,38,38,0.08)', borderLeft:'3px solid #ef4444', color:'#f87171', fontSize:12 }}>{addError}</div>}
             </div>
           </div>
 

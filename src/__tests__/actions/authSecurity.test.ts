@@ -92,22 +92,22 @@ describe('register — input validation', () => {
 
   it('rejects invalid email', async () => {
     await expect(register({ ...VALID_REGISTER, email: 'not-an-email' }))
-      .rejects.toThrow('Invalid email address.')
+      .resolves.toEqual({ error: 'Invalid email address.' })
   })
 
   it('rejects short password', async () => {
     await expect(register({ ...VALID_REGISTER, password: 'short' }))
-      .rejects.toThrow('Password must be at least 8 characters.')
+      .resolves.toEqual({ error: 'Password must be at least 8 characters.' })
   })
 
   it('rejects name with HTML injection', async () => {
     await expect(register({ ...VALID_REGISTER, full_name: '<script>xss</script>' }))
-      .rejects.toThrow('Please enter a valid name.')
+      .resolves.toEqual({ error: 'Please enter a valid name.' })
   })
 
   it('rejects empty name', async () => {
     await expect(register({ ...VALID_REGISTER, full_name: '' }))
-      .rejects.toThrow('Please enter a valid name.')
+      .resolves.toEqual({ error: 'Please enter a valid name.' })
   })
 
   it('passes sanitized values to createUser', async () => {
@@ -140,9 +140,9 @@ describe('register — rate limiting', () => {
   it('blocks the 6th registration from the same IP', async () => {
     mockHeaders.set('x-forwarded-for', '7.7.7.7')
     for (let i = 0; i < 5; i++) {
-      await register(VALID_REGISTER).catch(() => {})
+      await register(VALID_REGISTER)
     }
-    await expect(register(VALID_REGISTER)).rejects.toThrow('Too many attempts')
+    await expect(register(VALID_REGISTER)).resolves.toEqual({ error: 'Too many attempts. Please wait a moment and try again.' })
   })
 })
 
@@ -157,12 +157,12 @@ describe('login — input validation', () => {
 
   it('rejects invalid email with generic message', async () => {
     await expect(login('not-an-email', 'password123'))
-      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
+      .resolves.toEqual({ error: ERR.INVALID_CREDENTIALS })
   })
 
   it('rejects short password with generic message', async () => {
     await expect(login('user@example.com', 'short'))
-      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
+      .resolves.toEqual({ error: ERR.INVALID_CREDENTIALS })
   })
 
   it('normalizes email before passing to Supabase', async () => {
@@ -186,24 +186,19 @@ describe('login — enumeration protection', () => {
   it('returns same error for wrong password as for non-existent user', async () => {
     mockSignIn.mockResolvedValue({ data: null, error: { message: 'Invalid login credentials' } })
     await expect(login('user@example.com', 'wrongpassword'))
-      .rejects.toThrow(ERR.INVALID_CREDENTIALS)
+      .resolves.toEqual({ error: ERR.INVALID_CREDENTIALS })
   })
 
   it('does not reveal whether email exists', async () => {
     mockSignIn.mockResolvedValue({ data: null, error: { message: 'Email not confirmed' } })
     await expect(login('unconfirmed@example.com', 'password123'))
-      .rejects.toThrow(ERR.EMAIL_NOT_CONFIRMED)
+      .resolves.toEqual({ error: ERR.EMAIL_NOT_CONFIRMED })
   })
 
   it('does not leak Supabase error details', async () => {
     mockSignIn.mockResolvedValue({ data: null, error: { message: 'User not found in database' } })
-    try {
-      await login('user@example.com', 'password123')
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : ''
-      expect(msg).not.toContain('database')
-      expect(msg).not.toContain('User not found')
-    }
+    const result = await login('user@example.com', 'password123')
+    expect(result).toEqual({ error: ERR.INVALID_CREDENTIALS })
   })
 })
 
@@ -219,10 +214,10 @@ describe('login — rate limiting', () => {
 
   it('blocks after 10 failed attempts from the same IP', async () => {
     for (let i = 0; i < 10; i++) {
-      await login('user@example.com', 'wrongpass').catch(() => {})
+      await login('user@example.com', 'wrongpass')
     }
     await expect(login('user@example.com', 'wrongpass'))
-      .rejects.toThrow('Too many attempts')
+      .resolves.toEqual({ error: 'Too many attempts. Please wait a moment and try again.' })
   })
 
   it('different IPs have independent counters', async () => {

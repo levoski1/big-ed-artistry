@@ -39,7 +39,7 @@ describe('NotificationPreferencesForm', () => {
   })
 
   it('calls onSave with current preferences on submit', async () => {
-    const onSave = jest.fn().mockResolvedValue(undefined)
+    const onSave = jest.fn().mockResolvedValue({ success: true })
     render(<NotificationPreferencesForm initial={ALL_ON} onSave={onSave} />)
 
     // Opt out of payment_reminder
@@ -51,34 +51,34 @@ describe('NotificationPreferencesForm', () => {
   })
 
   it('shows success message after save', async () => {
-    const onSave = jest.fn().mockResolvedValue(undefined)
+    const onSave = jest.fn().mockResolvedValue({ success: true })
     render(<NotificationPreferencesForm initial={ALL_ON} onSave={onSave} />)
     fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
     await waitFor(() => expect(screen.getByText(/preferences saved/i)).toBeInTheDocument())
   })
 
   it('shows error message when save fails', async () => {
-    const onSave = jest.fn().mockRejectedValue(new Error('Network error'))
+    const onSave = jest.fn().mockResolvedValue({ error: 'Network error' })
     render(<NotificationPreferencesForm initial={ALL_ON} onSave={onSave} />)
     fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
     await waitFor(() => expect(screen.getByText(/network error/i)).toBeInTheDocument())
   })
 
   it('disables save button while saving', async () => {
-    let resolve!: () => void
-    const onSave = jest.fn().mockReturnValue(new Promise<void>(r => { resolve = r }))
+    let resolve!: (v: { success: true }) => void
+    const onSave = jest.fn().mockReturnValue(new Promise<{ success: true }>(r => { resolve = r }))
     render(<NotificationPreferencesForm initial={ALL_ON} onSave={onSave} />)
     const btn = screen.getByRole('button', { name: /save preferences/i })
     fireEvent.click(btn)
     expect(btn).toBeDisabled()
-    resolve()
+    resolve({ success: true })
     await waitFor(() => expect(btn).not.toBeDisabled())
   })
 
   it('opted-out preference is passed correctly (acceptance: opted-out user does not receive email)', async () => {
     // This test verifies the UI correctly passes opted-out prefs to the save handler,
     // which the email service then uses to skip sending.
-    const onSave = jest.fn().mockResolvedValue(undefined)
+    const onSave = jest.fn().mockResolvedValue({ success: true })
     const initial: NotificationPreferences = { ...ALL_ON, order_status_update: false }
     render(<NotificationPreferencesForm initial={initial} onSave={onSave} />)
     fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
@@ -88,7 +88,7 @@ describe('NotificationPreferencesForm', () => {
   })
 
   it('re-enabled preference is passed correctly (acceptance: email resumes after re-enable)', async () => {
-    const onSave = jest.fn().mockResolvedValue(undefined)
+    const onSave = jest.fn().mockResolvedValue({ success: true })
     const initial: NotificationPreferences = { ...ALL_ON, order_status_update: false }
     render(<NotificationPreferencesForm initial={initial} onSave={onSave} />)
 

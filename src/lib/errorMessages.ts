@@ -27,6 +27,8 @@ export const ERR = {
   // Uploads
   UPLOAD_FAILED: 'File upload failed. Please try a smaller image (JPG/PNG under 5MB).',
   UPLOAD_NO_FILE: 'No file provided.',
+  UPLOAD_INVALID_TYPE: 'Unsupported file type. Please upload a JPG, PNG, or PDF file.',
+  UPLOAD_TOO_LARGE: 'File is too large. Maximum size is 10MB.',
   UPLOAD_URL_FAILED: 'Failed to process the uploaded file. Please try again.',
   // Profile
   PROFILE_UPDATE_FAILED: 'Failed to update profile. Please try again.',

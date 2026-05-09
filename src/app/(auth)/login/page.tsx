@@ -38,17 +38,22 @@ function LoginForm() {
     setError('')
     setUnverified(false)
     try {
-      await login(email, password)
+      const result = await login(email, password)
+      if ('error' in result) {
+        const msg = result.error
+        if (msg === 'Your email address has not been verified yet. Please check your inbox and click the verification link to activate your account.') {
+          setUnverified(true)
+          setError('')
+        } else {
+          setError(msg)
+        }
+        setLoading(false)
+        return
+      }
       router.push(next)
       router.refresh()
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Login failed.'
-      if (msg.includes('not been verified') || msg.includes('not confirmed')) {
-        setUnverified(true)
-        setError('')
-      } else {
-        setError(msg)
-      }
+      setError(e instanceof Error && e.message ? e.message : 'Login failed. Please try again.')
       setLoading(false)
     }
   }
@@ -56,12 +61,12 @@ function LoginForm() {
   const handleResend = async () => {
     if (!email) { setError('Enter your email address above, then click resend.'); return }
     setResendStatus('sending')
-    try {
-      await resendConfirmation(email)
-      setResendStatus('sent')
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to resend.')
+    const result = await resendConfirmation(email)
+    if ('error' in result) {
+      setError(result.error)
       setResendStatus('idle')
+    } else {
+      setResendStatus('sent')
     }
   }
 

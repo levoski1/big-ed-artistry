@@ -28,7 +28,7 @@ const makeOrder = (): Order => ({
   total_amount: 50000, status: 'pending', payment_status: 'NOT_PAID',
   delivery_location: 'port_harcourt', delivery_address: '', delivery_bus_stop: '',
   delivery_fee: 2000, subtotal: 48000, amount_paid: 0, amount_remaining: 50000,
-  notes: null, created_at: '2024-01-15', updated_at: '2024-01-15',
+  idempotency_key: null, notes: null, created_at: '2024-01-15', updated_at: '2024-01-15',
   profiles: { id: 'u1', full_name: 'Jane Doe', email: 'jane@test.com', phone: null },
   order_items: [],
 })

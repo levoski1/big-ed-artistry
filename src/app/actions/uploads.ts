@@ -9,6 +9,10 @@ const BUCKET_MAP: Record<UploadType, string> = {
   payment_receipt: 'payment-receipts',
 }
 
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
 type UploadRow = Database['public']['Tables']['uploads']['Row']
 
 export async function uploadFile(
@@ -23,8 +27,20 @@ export async function uploadFile(
   const file = formData.get('file') as File
   if (!file) throw new Error(ERR.UPLOAD_NO_FILE)
 
+  // Server-side file validation
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    throw new Error(ERR.UPLOAD_INVALID_TYPE)
+  }
+  // Only check MIME type for non-PDF files (PDF MIME types vary across browsers)
+  if (file.type && ext !== 'pdf' && !ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error(ERR.UPLOAD_INVALID_TYPE)
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(ERR.UPLOAD_TOO_LARGE)
+  }
+
   const bucket = BUCKET_MAP[fileType]
-  const ext = file.name.split('.').pop()
   const storagePath = `${user.id}/${Date.now()}.${ext}`
 
   // Upload to Supabase Storage
@@ -70,6 +86,18 @@ export async function uploadPaymentReceipt(formData: FormData) {
 
 export async function uploadArtworkReference(formData: FormData, orderItemId?: string) {
   return uploadFile(formData, 'artwork_reference', orderItemId)
+}
+
+export async function linkUploadToOrderItem(uploadId: string, orderItemId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('uploads')
+    .update({ order_item_id: orderItemId })
+    .eq('id', uploadId)
+  if (error) {
+    console.error('[linkUploadToOrderItem error]', error.message)
+    throw new Error('Failed to link upload to order item')
+  }
 }
 
 export async function getMyUploads() {
