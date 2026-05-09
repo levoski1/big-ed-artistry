@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PublicLayout from '@/components/layout/PublicLayout'
@@ -9,7 +9,7 @@ import { deliveryFees, type DeliveryLocation } from '@/lib/customArtwork'
 import { calcPaymentSplit, calcBulkDiscount } from '@/lib/services/pricing'
 import OrderSuccessModal from '@/components/ui/OrderSuccessModal'
 import { createOrder } from '@/app/actions/orders'
-import { uploadPaymentReceipt } from '@/app/actions/uploads'
+import { uploadPaymentReceipt, linkUploadToOrderItem } from '@/app/actions/uploads'
 import { submitPayment } from '@/app/actions/payments'
 import type { Database } from '@/lib/types/database'
 
@@ -47,6 +47,13 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
+  const [fileError, setFileError] = useState('')
+
+  // Idempotency key — generated once per page mount to prevent duplicate submissions
+  const idempotencyKey = useRef<string | null>(null)
+  if (!idempotencyKey.current) {
+    idempotencyKey.current = crypto.randomUUID()
+  }
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setSelectedBank('') }, [paymentType])
@@ -64,10 +71,24 @@ export default function CheckoutPage() {
   const bankOptions     = paymentType ? BANKS[paymentType as 'full' | 'partial'] : []
   const selectedBankObj = bankOptions.find(b => b.id === selectedBank) ?? null
   const allTerms        = terms.deposit && terms.timeline && terms.discounts
-  const canSubmit       = Boolean(name && phone && address && busStop && location !== 'none' && allTerms && paymentType && selectedBank && receipt)
+  const canSubmit       = Boolean(name && phone && address && busStop && location !== 'none' && allTerms && paymentType && selectedBank && receipt && !fileError)
   const isEmpty         = state.artworkOrders.length === 0 && state.storeItems.length === 0
 
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+  const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+  const MAX_SIZE = 10 * 1024 * 1024
+
   const handleFile = (file: File) => {
+    setFileError('')
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_EXTS.includes(ext) || (file.type && !ALLOWED_TYPES.includes(file.type))) {
+      setFileError('Unsupported file type. Please upload a JPG, PNG, or PDF file.')
+      return
+    }
+    if (file.size > MAX_SIZE) {
+      setFileError('File is too large. Maximum size is 10MB.')
+      return
+    }
     setReceipt(file)
     setReceiptPreview(URL.createObjectURL(file))
   }
@@ -111,6 +132,12 @@ export default function CheckoutPage() {
         })),
       ]
 
+      // 1. Upload payment receipt FIRST — fails early if file is invalid
+      const receiptFormData = new FormData()
+      receiptFormData.append('file', receipt)
+      const upload = await uploadPaymentReceipt(receiptFormData)
+
+      // 2. Create order with idempotency key — prevents duplicate on retry
       const order = await createOrder({
         delivery_location: dbLocation,
         delivery_address: address,
@@ -123,11 +150,17 @@ export default function CheckoutPage() {
         originalSubtotal: grandTotal,
         amount: discountAmount,
         label: discountLabel,
-      } : undefined)
+      } : undefined, idempotencyKey.current ?? undefined)
 
-      const receiptFormData = new FormData()
-      receiptFormData.append('file', receipt)
-      const upload = await uploadPaymentReceipt(receiptFormData)
+      // 2.5 Link artwork reference uploads to order items
+      for (let i = 0; i < state.artworkOrders.length; i++) {
+        const ao = state.artworkOrders[i]
+        if (ao.uploadId && order.createdItems[i]) {
+          await linkUploadToOrderItem(ao.uploadId, order.createdItems[i].id)
+        }
+      }
+
+      // 3. Submit payment record
       await submitPayment({
         order_id: order.id,
         amount: amountDue,
@@ -284,7 +317,7 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {/* 4. Receipt */}
+                {/* 4. Receipt */}
               <div style={{ background: 'var(--bg-card)', padding: '36px 32px' }}>
                 <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, marginBottom: 16 }}>4. Upload Payment Receipt *</h2>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.7 }}>Upload a screenshot or photo of your bank transfer confirmation.</p>
@@ -292,7 +325,7 @@ export default function CheckoutPage() {
                   onDragOver={e => { e.preventDefault(); setDragging(true) }}
                   onDragLeave={() => setDragging(false)}
                   onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '48px 24px', background: dragging ? 'rgba(184,134,11,0.06)' : 'var(--bg-dark)', border: dragging ? '1px dashed var(--gold-primary)' : receipt ? '1px solid var(--success)' : '1px dashed var(--border-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '48px 24px', background: dragging ? 'rgba(184,134,11,0.06)' : 'var(--bg-dark)', border: dragging ? '1px dashed var(--gold-primary)' : fileError ? '1px solid #ef4444' : receipt ? '1px solid var(--success)' : '1px dashed var(--border-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
                   {receipt ? (
                     <>{receiptPreview && <img src={receiptPreview} alt="Receipt" style={{ maxHeight: 120, maxWidth: '100%', objectFit: 'contain' }} />}<div style={{ fontSize: 13, color: 'var(--success)' }}>✓ {receipt.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Click to change</div></>
@@ -300,6 +333,12 @@ export default function CheckoutPage() {
                     <><div style={{ fontSize: 32 }}>📎</div><div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Drag &amp; drop or click to upload</div><div style={{ fontSize: 12, color: 'var(--text-muted)' }}>JPG, PNG, PDF — max 10MB</div></>
                   )}
                 </label>
+                {fileError && (
+                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(220,38,38,0.08)', borderLeft: '3px solid #ef4444', color: '#f87171', fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 6, lineHeight: 1.5 }}>
+                    <span style={{ flexShrink: 0 }}>⚠</span>
+                    <span>{fileError}</span>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -20,6 +20,8 @@ export interface CartOrder {
   customMessage: string
   occasion: string
   imageName: string
+  imageUrl: string
+  uploadId: string
   receiptName: string
   address: string
   phoneNumber: string

@@ -12,7 +12,7 @@ const PREF_LABELS: { key: keyof NotificationPreferences; label: string; descript
 
 interface Props {
   initial: NotificationPreferences
-  onSave: (prefs: NotificationPreferences) => Promise<void>
+  onSave: (prefs: NotificationPreferences) => Promise<{ error: string } | { success: true }>
 }
 
 export default function NotificationPreferencesForm({ initial, onSave }: Props) {
@@ -29,10 +29,14 @@ export default function NotificationPreferencesForm({ initial, onSave }: Props) 
     setMsg('')
     setError('')
     try {
-      await onSave(prefs)
-      setMsg('Preferences saved.')
+      const result = await onSave(prefs)
+      if ('error' in result) {
+        setError(result.error)
+      } else {
+        setMsg('Preferences saved.')
+      }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save.')
+      setError('Failed to save preferences.')
     } finally {
       setSaving(false)
     }

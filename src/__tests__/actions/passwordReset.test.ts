@@ -74,8 +74,8 @@ beforeEach(() => {
 // ─── forgotPassword ───────────────────────────────────────────────────────
 
 describe('forgotPassword', () => {
-  it('resolves without throwing for a valid email (user exists)', async () => {
-    await expect(forgotPassword('alice@example.com')).resolves.toBeUndefined()
+  it('resolves with success for a valid email (user exists)', async () => {
+    await expect(forgotPassword('alice@example.com')).resolves.toEqual({ success: true })
   })
 
   it('sends a reset email when the user exists', async () => {
@@ -87,10 +87,10 @@ describe('forgotPassword', () => {
     })
   })
 
-  it('resolves without throwing for a non-existent email (no enumeration)', async () => {
+  it('resolves with success for a non-existent email (no enumeration)', async () => {
     // generateLink returns an error when the email doesn't exist
     mockGenerateLink.mockResolvedValue({ data: null, error: { message: 'User not found' } })
-    await expect(forgotPassword('nobody@example.com')).resolves.toBeUndefined()
+    await expect(forgotPassword('nobody@example.com')).resolves.toEqual({ success: true })
   })
 
   it('does NOT send an email when the user does not exist', async () => {
@@ -99,18 +99,18 @@ describe('forgotPassword', () => {
     expect(mockSendEmail).not.toHaveBeenCalled()
   })
 
-  it('resolves without throwing for an invalid email format (no enumeration)', async () => {
-    await expect(forgotPassword('not-an-email')).resolves.toBeUndefined()
+  it('resolves with success for an invalid email format (no enumeration)', async () => {
+    await expect(forgotPassword('not-an-email')).resolves.toEqual({ success: true })
     expect(mockSendEmail).not.toHaveBeenCalled()
   })
 
-  it('throws RATE_LIMITED after 3 requests from the same IP', async () => {
+  it('returns RATE_LIMITED after 3 requests from the same IP', async () => {
     // Use a unique IP to avoid interference from other tests
     mockHeaders.set('x-forwarded-for', '10.0.0.99')
     await forgotPassword('alice@example.com')
     await forgotPassword('alice@example.com')
     await forgotPassword('alice@example.com')
-    await expect(forgotPassword('alice@example.com')).rejects.toThrow(ERR.RATE_LIMITED)
+    await expect(forgotPassword('alice@example.com')).resolves.toEqual({ error: ERR.RATE_LIMITED })
     mockHeaders.set('x-forwarded-for', '10.0.0.1')
   })
 
@@ -137,36 +137,36 @@ describe('forgotPassword', () => {
 describe('resetPassword', () => {
   it('calls supabase.auth.updateUser with the new password', async () => {
     mockUpdateUser.mockResolvedValue({ data: {}, error: null })
-    await resetPassword('newpass123', 'newpass123')
+    await expect(resetPassword('newpass123', 'newpass123')).resolves.toEqual({ success: true })
     expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'newpass123' })
   })
 
-  it('resolves without throwing on success', async () => {
+  it('resolves with success on success', async () => {
     mockUpdateUser.mockResolvedValue({ data: {}, error: null })
-    await expect(resetPassword('newpass123', 'newpass123')).resolves.toBeUndefined()
+    await expect(resetPassword('newpass123', 'newpass123')).resolves.toEqual({ success: true })
   })
 
-  it('throws PASSWORDS_MISMATCH when passwords do not match', async () => {
-    await expect(resetPassword('newpass123', 'different1')).rejects.toThrow(ERR.PASSWORDS_MISMATCH)
+  it('returns PASSWORDS_MISMATCH when passwords do not match', async () => {
+    await expect(resetPassword('newpass123', 'different1')).resolves.toEqual({ error: ERR.PASSWORDS_MISMATCH })
     expect(mockUpdateUser).not.toHaveBeenCalled()
   })
 
-  it('throws WEAK_PASSWORD when password is too short', async () => {
-    await expect(resetPassword('short', 'short')).rejects.toThrow(ERR.WEAK_PASSWORD)
+  it('returns WEAK_PASSWORD when password is too short', async () => {
+    await expect(resetPassword('short', 'short')).resolves.toEqual({ error: ERR.WEAK_PASSWORD })
     expect(mockUpdateUser).not.toHaveBeenCalled()
   })
 
-  it('throws RESET_FAILED when Supabase returns an error', async () => {
+  it('returns RESET_FAILED when Supabase returns an error', async () => {
     mockUpdateUser.mockResolvedValue({ data: null, error: { message: 'Auth error' } })
-    await expect(resetPassword('newpass123', 'newpass123')).rejects.toThrow(ERR.RESET_FAILED)
+    await expect(resetPassword('newpass123', 'newpass123')).resolves.toEqual({ error: ERR.RESET_FAILED })
   })
 
   it('rejects passwords shorter than 8 characters', async () => {
-    await expect(resetPassword('1234567', '1234567')).rejects.toThrow(ERR.WEAK_PASSWORD)
+    await expect(resetPassword('1234567', '1234567')).resolves.toEqual({ error: ERR.WEAK_PASSWORD })
   })
 
   it('accepts passwords exactly 8 characters long', async () => {
     mockUpdateUser.mockResolvedValue({ data: {}, error: null })
-    await expect(resetPassword('12345678', '12345678')).resolves.toBeUndefined()
+    await expect(resetPassword('12345678', '12345678')).resolves.toEqual({ success: true })
   })
 })

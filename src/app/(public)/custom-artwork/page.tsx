@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext'
 import {
   calculateTotal, canvasOptions, frameOptions, glassOptions,
 } from '@/lib/customArtwork'
+import { uploadArtworkReference } from '@/app/actions/uploads'
 
 const customArtworkSizeOptions = [
   { label: '12 × 16', width: 12, height: 16 },
@@ -47,6 +48,8 @@ export default function CustomArtworkPage() {
   const [artImage, setArtImage] = useState<File | null>(null)
   const [artImagePreview, setArtImagePreview] = useState('')
   const [addedToCart, setAddedToCart] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [addError, setAddError] = useState('')
 
   const canvas = canvasOptions.find(o => o.id === canvasId) ?? canvasOptions[canvasOptions.length - 1]
   const frame = frameOptions.find(o => o.id === frameId) ?? frameOptions[0]
@@ -78,35 +81,51 @@ export default function CustomArtworkPage() {
 
   const canAdd = Boolean(selectedSize && artImage)
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!canAdd || !selectedSize || !artImage) return
-    addArtwork({
-      id: `ART-${Date.now()}`,
-      artworkType: 'Custom Artwork',
-      sizeLabel: selectedSize.label,
-      width: selectedSize.width, height: selectedSize.height, area,
-      canvasId, canvasName: canvas.name,
-      frameId, frameName: frame.name,
-      glassId, glassName: glass.name,
-      writeUpType, customMessage, occasion,
-      imageName: artImage.name,
-      receiptName: '', address: '', phoneNumber: '', busStop: '',
-      location: 'none', paymentType: 'full',
-      basePrice, canvasPrice, framePrice, glassPrice,
-      deliveryFee: 0, totalPrice,
-      createdAt: new Date().toISOString(),
-    })
-    // Reset form for next artwork
-    setSelectedSize(null)
-    setArea(0)
-    setCanvasId('none')
-    setFrameId('none')
-    setGlassId('none')
-    setWriteUpType('no')
-    setCustomMessage('')
-    setOccasion('Birthday')
-    setArtImage(null)
-    setArtImagePreview('')
+    setAddingToCart(true)
+    setAddError('')
+    try {
+      // Upload reference image to Supabase Storage
+      const formData = new FormData()
+      formData.append('file', artImage)
+      const upload = await uploadArtworkReference(formData)
+
+      addArtwork({
+        id: `ART-${Date.now()}`,
+        artworkType: 'Custom Artwork',
+        sizeLabel: selectedSize.label,
+        width: selectedSize.width, height: selectedSize.height, area,
+        canvasId, canvasName: canvas.name,
+        frameId, frameName: frame.name,
+        glassId, glassName: glass.name,
+        writeUpType, customMessage, occasion,
+        imageName: artImage.name,
+        imageUrl: upload.file_url,
+        uploadId: upload.id,
+        receiptName: '', address: '', phoneNumber: '', busStop: '',
+        location: 'none', paymentType: 'full',
+        basePrice, canvasPrice, framePrice, glassPrice,
+        deliveryFee: 0, totalPrice,
+        createdAt: new Date().toISOString(),
+      })
+      // Reset form for next artwork
+      setSelectedSize(null)
+      setArea(0)
+      setCanvasId('none')
+      setFrameId('none')
+      setGlassId('none')
+      setWriteUpType('no')
+      setCustomMessage('')
+      setOccasion('Birthday')
+      setArtImage(null)
+      setArtImagePreview('')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to upload image'
+      setAddError(msg)
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
   function OptionCard({ id, name, preview, selected, disabled, onSelect, imageUrl }: { id: string; name: string; preview: string; selected: boolean; disabled?: boolean; onSelect: () => void; imageUrl?: string }) {
@@ -239,10 +258,11 @@ export default function CustomArtworkPage() {
 
             {/* CTA */}
             <div style={{ background: 'var(--bg-card)', padding: '28px 32px', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button onClick={handleAddToCart} disabled={!canAdd} style={{ flex: 1, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: canAdd ? 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))' : 'var(--bg-dark)', color: canAdd ? 'var(--text-on-gold)' : 'var(--text-muted)', border: canAdd ? 'none' : '1px solid var(--border-color)', cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin",sans-serif', transition: 'all 0.3s', minWidth: 160 }}>
-                {canAdd ? '+ Add to Cart' : 'Select size & upload photo'}
+              <button onClick={handleAddToCart} disabled={!canAdd || addingToCart} style={{ flex: 1, padding: '16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', background: canAdd && !addingToCart ? 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))' : 'var(--bg-dark)', color: canAdd && !addingToCart ? 'var(--text-on-gold)' : 'var(--text-muted)', border: canAdd && !addingToCart ? 'none' : '1px solid var(--border-color)', cursor: canAdd && !addingToCart ? 'pointer' : 'not-allowed', fontFamily: '"Libre Franklin",sans-serif', transition: 'all 0.3s', minWidth: 160 }}>
+                {addingToCart ? 'Uploading…' : canAdd ? '+ Add to Cart' : 'Select size & upload photo'}
               </button>
-              {!canAdd && <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>Select a size and upload your photo to proceed.</span>}
+              {!canAdd && !addingToCart && <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>Select a size and upload your photo to proceed.</span>}
+              {addError && <div style={{ width: '100%', padding: '10px 14px', background: 'rgba(220,38,38,0.08)', borderLeft: '3px solid #ef4444', color: '#f87171', fontSize: 12 }}>{addError}</div>}
             </div>
           </div>
 

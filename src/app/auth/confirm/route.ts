@@ -7,9 +7,21 @@ export async function GET(request: NextRequest) {
   const baseUrl = getAppUrl() || new URL(request.url).origin
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
+  const code = searchParams.get('code')
 
+  const supabase = await createClient()
+
+  // PKCE flow: Supabase redirects here with ?code= after verifying on their end
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(`${baseUrl}/login?confirmed=1`)
+    }
+    return NextResponse.redirect(`${baseUrl}/login?error=invalid_token`)
+  }
+
+  // token_hash flow (from generateLink)
   if (token_hash && type) {
-    const supabase = await createClient()
     const { error } = await supabase.auth.verifyOtp({
       type: type as 'signup' | 'magiclink',
       token_hash,

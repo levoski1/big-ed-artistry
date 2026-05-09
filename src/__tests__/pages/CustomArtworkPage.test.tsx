@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import CustomArtworkPage from '@/app/(public)/custom-artwork/page'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
@@ -7,6 +7,13 @@ jest.mock('next/link', () => ({ children, href }: { children: React.ReactNode; h
 jest.mock('@/components/layout/PublicLayout', () => ({ children }: { children: React.ReactNode }) => <div>{children}</div>)
 jest.mock('@/context/CartContext', () => ({
   useCart: () => ({ addArtwork: jest.fn() }),
+}))
+
+jest.mock('@/app/actions/uploads', () => ({
+  uploadArtworkReference: jest.fn(() => Promise.resolve({
+    id: 'upload-1',
+    file_url: 'https://example.com/ref.jpg',
+  })),
 }))
 
 // URL.createObjectURL is not available in jsdom
@@ -74,12 +81,12 @@ describe('CustomArtworkPage', () => {
     expect(screen.getByText(/some frames are unavailable/i)).toBeInTheDocument()
   })
 
-  it('calls addArtwork and resets form on successful add', () => {
+  it('calls addArtwork and resets form on successful add', async () => {
     const addArtwork = jest.fn()
     jest.spyOn(require('@/context/CartContext'), 'useCart').mockReturnValue({ addArtwork })
     selectSize('16 × 20')
     uploadFile()
     fireEvent.click(screen.getByRole('button', { name: /add to cart/i }))
-    expect(addArtwork).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(addArtwork).toHaveBeenCalledTimes(1))
   })
 })

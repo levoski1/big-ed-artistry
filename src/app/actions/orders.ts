@@ -11,18 +11,30 @@ type OrderInsert = Database['public']['Tables']['orders']['Insert']
 type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
+type OrderItemRow = Database['public']['Tables']['order_items']['Row']
 
 export async function createOrder(
   order: Omit<OrderInsert, 'order_number' | 'user_id' | 'amount_paid'>,
   items: Omit<OrderItemInsert, 'order_id'>[],
   amountPaid = 0,
   paymentType: 'full' | 'partial' = 'full',
-  discount?: { originalSubtotal: number; amount: number; label: string }
-): Promise<OrderRow> {
+  discount?: { originalSubtotal: number; amount: number; label: string },
+  idempotencyKey?: string
+): Promise<OrderRow & { createdItems: OrderItemRow[] }> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
+
+    // Check for existing order with same idempotency key (prevents duplicate submissions)
+    if (idempotencyKey) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .single()
+      if (existing) return { ...existing, createdItems: [] } as OrderRow & { createdItems: OrderItemRow[] }
+    }
 
     // Ensure profile row exists (safety net for users registered before the trigger was added)
     const admin = createAdminClient()
@@ -40,7 +52,12 @@ export async function createOrder(
 
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
-      .insert({ ...order, user_id: user.id, order_number: numData as string })
+      .insert({
+        ...order,
+        user_id: user.id,
+        order_number: numData as string,
+        idempotency_key: idempotencyKey ?? null,
+      })
       .select()
       .single()
     if (orderError) throw new Error(orderError.message)
@@ -49,6 +66,13 @@ export async function createOrder(
       .from('order_items')
       .insert(items.map(item => ({ ...item, order_id: newOrder.id })))
     if (itemsError) throw new Error(itemsError.message)
+
+    // Select back the created items so callers can link uploads, etc.
+    const { data: createdItems } = await supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', newOrder.id)
+      .order('created_at', { ascending: true })
 
     // Send notification emails (non-blocking — don't fail the order if email fails)
     const firstItem = items[0]
@@ -103,7 +127,7 @@ export async function createOrder(
     revalidatePath('/admin/dashboard')
     revalidatePath('/admin/orders')
 
-    return newOrder
+    return { ...newOrder, createdItems: createdItems ?? [] } as OrderRow & { createdItems: OrderItemRow[] }
   } catch (e) {
     console.error('[createOrder error]', e instanceof Error ? e.message : e)
     throw new Error(toUserMessage(e))

@@ -110,6 +110,7 @@ export interface Database {
           total_amount: number
           amount_paid: number
           amount_remaining: number
+          idempotency_key: string | null
           notes: string | null
           created_at: string
           updated_at: string
@@ -127,6 +128,7 @@ export interface Database {
           subtotal: number
           total_amount: number
           amount_paid?: number
+          idempotency_key?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -140,6 +142,7 @@ export interface Database {
           subtotal?: number
           total_amount?: number
           amount_paid?: number
+          idempotency_key?: string | null
           notes?: string | null
           updated_at?: string
         }

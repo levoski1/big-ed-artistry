@@ -9,14 +9,19 @@ import { checkRateLimit } from '@/lib/rateLimit'
 import { validateEmail, validatePassword, validateName } from '@/lib/sanitize'
 import { toUserMessage, ERR } from '@/lib/errorMessages'
 import { getAppUrl } from '@/lib/appUrl'
+import type { Database } from '@/lib/types/database'
 
 function getClientIp(): string {
-  const hdrs = headers()
-  return (
-    hdrs.get('x-forwarded-for')?.split(',')[0].trim() ??
-    hdrs.get('x-real-ip') ??
-    'unknown'
-  )
+  try {
+    const hdrs = headers()
+    return (
+      hdrs.get('x-forwarded-for')?.split(',')[0].trim() ??
+      hdrs.get('x-real-ip') ??
+      'unknown'
+    )
+  } catch {
+    return 'unknown'
+  }
 }
 
 export async function register(data: {
@@ -24,35 +29,30 @@ export async function register(data: {
   password: string
   full_name: string
   phone?: string
-}) {
+}): Promise<{ error: string } | { success: true }> {
   try {
-    // Rate limit: 5 registrations per hour per IP
     const ip = getClientIp()
     const rl = checkRateLimit(`register:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 })
-    if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
+    if (!rl.allowed) return { error: ERR.RATE_LIMITED }
 
-    // Validate inputs
     const cleanEmail = validateEmail(data.email)
-    if (!cleanEmail) throw new Error(ERR.INVALID_EMAIL)
+    if (!cleanEmail) return { error: ERR.INVALID_EMAIL }
     const cleanPassword = validatePassword(data.password)
-    if (!cleanPassword) throw new Error(ERR.WEAK_PASSWORD)
+    if (!cleanPassword) return { error: ERR.WEAK_PASSWORD }
     const cleanName = validateName(data.full_name)
-    if (!cleanName) throw new Error(ERR.INVALID_NAME)
+    if (!cleanName) return { error: ERR.INVALID_NAME }
 
     const admin = createAdminClient()
 
-    // Use admin.createUser with email_confirm=false to suppress Supabase's
-    // built-in confirmation email — we send our own branded one below.
     const { data: result, error } = await admin.auth.admin.createUser({
       email: cleanEmail,
       password: cleanPassword,
       email_confirm: false,
       user_metadata: { full_name: cleanName, phone: data.phone ?? null },
     })
-    if (error) throw new Error(toUserMessage(error))
+    if (error) return { error: toUserMessage(error) }
 
     if (result.user) {
-      // Create profile row immediately so FK constraints work
       await admin.from('profiles').upsert({
         id: result.user.id,
         email: cleanEmail,
@@ -60,11 +60,10 @@ export async function register(data: {
         phone: data.phone ?? null,
       }, { onConflict: 'id' })
 
-      // Generate a confirmation link pointing to our /auth/confirm route
       const siteUrl = getAppUrl()
       if (!siteUrl) {
         console.error('[register] APP_URL is not set in production.')
-        throw new Error(ERR.CONFIRM_LINK_FAILED)
+        return { error: ERR.CONFIRM_LINK_FAILED }
       }
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: 'signup',
@@ -75,7 +74,7 @@ export async function register(data: {
 
       if (linkError || !linkData?.properties?.action_link) {
         console.error('[register] generateLink failed:', linkError?.message)
-        throw new Error(ERR.CONFIRM_LINK_FAILED)
+        return { error: ERR.CONFIRM_LINK_FAILED }
       }
 
       const emailResult = await sendEmail({
@@ -89,40 +88,38 @@ export async function register(data: {
 
       if (!emailResult.success) {
         console.error('[register] sendEmail failed:', emailResult.error)
-        // Still allow registration to succeed, but inform user about email issue
-        console.warn('[register] User account created but confirmation email failed to send')
-        // Don't throw error - account was created successfully
       }
     }
 
-    return result
+    return { success: true }
   } catch (e) {
-    throw new Error(toUserMessage(e))
+    console.error('[register]', e)
+    return { error: toUserMessage(e) }
   }
 }
 
-export async function resendConfirmation(email: string) {
+export async function resendConfirmation(email: string): Promise<{ error: string } | { success: true }> {
   try {
     const admin = createAdminClient()
     const siteUrl = getAppUrl()
     if (!siteUrl) {
       console.error('[resendConfirmation] APP_URL is not set in production.')
-      throw new Error(ERR.CONFIRM_LINK_FAILED)
+      return { error: ERR.CONFIRM_LINK_FAILED }
     }
 
     // Look up the user to get their name for the email
     const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
-    if (listError) throw new Error(toUserMessage(listError))
+    if (listError) return { error: toUserMessage(listError) }
     const user = users.find(u => u.email === email)
-    if (!user) throw new Error(ERR.GENERIC)
-    if (user.email_confirmed_at) throw new Error(ERR.EMAIL_ALREADY_CONFIRMED)
+    if (!user) return { error: ERR.GENERIC }
+    if (user.email_confirmed_at) return { error: ERR.EMAIL_ALREADY_CONFIRMED }
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: { redirectTo: `${siteUrl}/auth/confirm` },
     })
-    if (linkError || !linkData?.properties?.action_link) throw new Error(ERR.CONFIRM_LINK_FAILED)
+    if (linkError || !linkData?.properties?.action_link) return { error: ERR.CONFIRM_LINK_FAILED }
 
     const name = user.user_metadata?.full_name ?? email
     await sendEmail({
@@ -130,55 +127,43 @@ export async function resendConfirmation(email: string) {
       subject: 'Confirm your Big Ed Artistry account',
       html: confirmationTemplate({ name, confirmUrl: linkData.properties.action_link }),
     })
+    return { success: true }
   } catch (e) {
-    throw new Error(toUserMessage(e))
+    return { error: toUserMessage(e) }
   }
 }
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string): Promise<{ error: string } | { success: true }> {
   try {
-    // Rate limit: 10 attempts per 15 minutes per IP
     const ip = getClientIp()
     const rl = checkRateLimit(`login:${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 })
-    if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
+    if (!rl.allowed) return { error: ERR.RATE_LIMITED }
 
-    // Validate inputs — reject obviously malformed values before hitting Supabase
     const cleanEmail = validateEmail(email)
-    if (!cleanEmail) throw new Error(ERR.INVALID_CREDENTIALS)
+    if (!cleanEmail) return { error: ERR.INVALID_CREDENTIALS }
     const cleanPassword = validatePassword(password)
-    if (!cleanPassword) throw new Error(ERR.INVALID_CREDENTIALS)
+    if (!cleanPassword) return { error: ERR.INVALID_CREDENTIALS }
 
     const supabase = await createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
+    const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
 
     if (error) {
       if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
-        throw new Error(ERR.EMAIL_NOT_CONFIRMED)
+        return { error: ERR.EMAIL_NOT_CONFIRMED }
       }
-      throw new Error(ERR.INVALID_CREDENTIALS)
+      return { error: ERR.INVALID_CREDENTIALS }
     }
-    return data
+    return { success: true }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    // Pass through our own safe messages; mask everything else
-    const safeValues = Object.values(ERR) as string[]
-    if (safeValues.includes(msg)) throw e
-    throw new Error(ERR.INVALID_CREDENTIALS)
+    console.error('[login]', e)
+    return { error: ERR.INVALID_CREDENTIALS }
   }
 }
 
 export async function logout() {
-  try {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('[logout]', error.message)
-      throw new Error(ERR.LOGOUT_FAILED)
-    }
-  } catch (e) {
-    if (e instanceof Error && Object.values(ERR).includes(e.message as any)) throw e
-    throw new Error(ERR.LOGOUT_FAILED)
-  }
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) console.error('[logout]', error.message)
   redirect('/')
 }
 
@@ -212,20 +197,25 @@ export async function getCurrentUser() {
   return profile
 }
 
-export async function updateProfile(data: { full_name?: string; phone?: string }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error(ERR.NOT_AUTHENTICATED)
+export async function updateProfile(data: { full_name?: string; phone?: string }): Promise<{ error: string } | { profile: Database['public']['Tables']['profiles']['Row'] }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: ERR.NOT_AUTHENTICATED }
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .update(data)
-    .eq('id', user.id)
-    .select()
-    .single()
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id)
+      .select()
+      .single()
 
-  if (error) throw new Error(ERR.PROFILE_UPDATE_FAILED)
-  return profile
+    if (error) return { error: ERR.PROFILE_UPDATE_FAILED }
+    return { profile }
+  } catch (e) {
+    console.error('[updateProfile]', e)
+    return { error: ERR.GENERIC }
+  }
 }
 
 /**
@@ -233,19 +223,19 @@ export async function updateProfile(data: { full_name?: string; phone?: string }
  * Always returns the same message regardless of whether the email exists
  * to prevent user enumeration.
  */
-export async function forgotPassword(email: string): Promise<void> {
-  // Rate limit: 3 reset requests per 15 minutes per IP
-  const ip = getClientIp()
-  const rl = checkRateLimit(`reset:${ip}`, { limit: 3, windowMs: 15 * 60 * 1000 })
-  if (!rl.allowed) throw new Error(ERR.RATE_LIMITED)
-
-  const cleanEmail = validateEmail(email)
-  // Always succeed silently for invalid/non-existent emails (no enumeration)
-  if (!cleanEmail) return
-
+export async function forgotPassword(email: string): Promise<{ error: string } | { success: true }> {
   try {
+    // Rate limit: 3 reset requests per 15 minutes per IP
+    const ip = getClientIp()
+    const rl = checkRateLimit(`reset:${ip}`, { limit: 3, windowMs: 15 * 60 * 1000 })
+    if (!rl.allowed) return { error: ERR.RATE_LIMITED }
+
+    const cleanEmail = validateEmail(email)
+    // Always succeed silently for invalid/non-existent emails (no enumeration)
+    if (!cleanEmail) return { success: true }
+
     const siteUrl = getAppUrl()
-    if (!siteUrl) return
+    if (!siteUrl) return { success: true }
 
     const admin = createAdminClient()
 
@@ -259,7 +249,7 @@ export async function forgotPassword(email: string): Promise<void> {
     })
 
     // If the email doesn't exist, generateLink returns an error — we swallow it silently.
-    if (linkError || !linkData?.properties?.action_link) return
+    if (linkError || !linkData?.properties?.action_link) return { success: true }
 
     // Look up the user's name for a personalised email
     const { data: { users } } = await admin.auth.admin.listUsers()
@@ -271,8 +261,10 @@ export async function forgotPassword(email: string): Promise<void> {
       subject: 'Reset your Big Ed Artistry password',
       html: passwordResetTemplate({ name, resetUrl: linkData.properties.action_link }),
     })
+    return { success: true }
   } catch (e) {
     console.error('[forgotPassword]', e instanceof Error ? e.message : e)
+    return { error: ERR.GENERIC }
   }
 }
 
@@ -280,17 +272,19 @@ export async function forgotPassword(email: string): Promise<void> {
  * Sets a new password for the currently authenticated user (after recovery token exchange).
  * The /auth/reset route handler exchanges the token for a session before this is called.
  */
-export async function resetPassword(password: string, confirmPassword: string): Promise<void> {
-  if (password !== confirmPassword) throw new Error(ERR.PASSWORDS_MISMATCH)
-
-  const cleanPassword = validatePassword(password)
-  if (!cleanPassword) throw new Error(ERR.WEAK_PASSWORD)
-
+export async function resetPassword(password: string, confirmPassword: string): Promise<{ error: string } | { success: true }> {
   try {
+    if (password !== confirmPassword) return { error: ERR.PASSWORDS_MISMATCH }
+
+    const cleanPassword = validatePassword(password)
+    if (!cleanPassword) return { error: ERR.WEAK_PASSWORD }
+
     const supabase = await createClient()
     const { error } = await supabase.auth.updateUser({ password: cleanPassword })
-    if (error) throw new Error(ERR.RESET_FAILED)
+    if (error) return { error: ERR.RESET_FAILED }
+
+    return { success: true }
   } catch (e) {
-    throw new Error(toUserMessage(e, ERR.RESET_FAILED))
+    return { error: toUserMessage(e, ERR.RESET_FAILED) }
   }
 }

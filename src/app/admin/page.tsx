@@ -17,7 +17,8 @@ export default function AdminLoginPage() {
     setLoading(true)
     setError('')
     try {
-      await login(email, password)
+      const result = await login(email, password)
+      if ('error' in result) { setError(result.error); setLoading(false); return }
       const profile = await getCurrentUser()
       if (profile?.role !== 'admin') {
         setError('Access denied. Admin accounts only.')
@@ -27,7 +28,7 @@ export default function AdminLoginPage() {
       router.push('/admin/dashboard')
       router.refresh()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Login failed.')
+      setError(e instanceof Error && e.message ? e.message : 'Login failed. Please try again.')
       setLoading(false)
     }
   }

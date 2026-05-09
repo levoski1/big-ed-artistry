@@ -43,14 +43,13 @@ export default function ProfilePageContent({ user, totalOrders, completedCount, 
     setSaving(true)
     setSaveMsg('')
     setSaveError('')
-    try {
-      await updateProfile({ full_name: fullName, phone: phone || undefined })
+    const result = await updateProfile({ full_name: fullName, phone: phone || undefined })
+    if ('error' in result) {
+      setSaveError(result.error)
+    } else {
       setSaveMsg('Profile updated successfully.')
-    } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save.')
-    } finally {
-      setSaving(false)
     }
+    setSaving(false)
   }
 
   const handleChangePassword = async () => {

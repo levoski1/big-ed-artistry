@@ -38,6 +38,9 @@ const mockProfile = { email: 'user@test.com', full_name: 'Test User' }
 
 const mockOrderSingle = jest.fn()
 const mockOrderInsert = jest.fn(() => ({ select: jest.fn(() => ({ single: mockOrderSingle })) }))
+const mockItemsOrder = jest.fn(() => Promise.resolve({ data: [], error: null }))
+const mockItemsEq = jest.fn(() => ({ order: mockItemsOrder }))
+const mockItemsSelect = jest.fn(() => ({ eq: mockItemsEq }))
 const mockItemsInsert = jest.fn(() => Promise.resolve({ error: null }))
 const mockRpc = jest.fn(() => Promise.resolve({ data: 'BEA-001', error: null }))
 const mockGetUser = jest.fn(() => Promise.resolve({ data: { user: { id: 'user-1', email: 'user@test.com', user_metadata: { full_name: 'Test User' } } } }))
@@ -48,7 +51,7 @@ jest.mock('@/lib/supabase/server', () => ({
     auth: { getUser: mockGetUser },
     from: jest.fn((table: string) => {
       if (table === 'orders') return { insert: mockOrderInsert }
-      if (table === 'order_items') return { insert: mockItemsInsert }
+      if (table === 'order_items') return { insert: mockItemsInsert, select: mockItemsSelect }
       if (table === 'payments') return {
         insert: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: mockPayment, error: null })) })) })),
       }

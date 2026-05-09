@@ -21,16 +21,22 @@ export async function getPreferences(): Promise<NotificationPreferences> {
 }
 
 /** Save preferences for the current session user (upsert). */
-export async function savePreferences(prefs: NotificationPreferences): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+export async function savePreferences(prefs: NotificationPreferences): Promise<{ error: string } | { success: true }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase
-    .from('notification_preferences')
-    .upsert({ user_id: user.id, ...prefs, updated_at: new Date().toISOString() })
+    const { error } = await supabase
+      .from('notification_preferences')
+      .upsert({ user_id: user.id, ...prefs, updated_at: new Date().toISOString() })
 
-  if (error) throw new Error(error.message)
+    if (error) return { error: error.message }
+    return { success: true }
+  } catch (e) {
+    console.error('[savePreferences]', e)
+    return { error: 'Failed to save preferences.' }
+  }
 }
 
 /** Fetch preferences for any user by ID (server-side, admin client). */

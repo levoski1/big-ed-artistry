@@ -1,11 +1,18 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PhotoEnlargePage from '@/app/(public)/photo-enlarge/page'
 
 jest.mock('next/link', () => ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>)
 jest.mock('@/components/layout/PublicLayout', () => ({ children }: { children: React.ReactNode }) => <div>{children}</div>)
 jest.mock('@/context/CartContext', () => ({
   useCart: () => ({ addArtwork: jest.fn() }),
+}))
+
+jest.mock('@/app/actions/uploads', () => ({
+  uploadArtworkReference: jest.fn(() => Promise.resolve({
+    id: 'upload-1',
+    file_url: 'https://example.com/ref.jpg',
+  })),
 }))
 
 global.URL.createObjectURL = jest.fn(() => 'blob:mock')
@@ -67,12 +74,12 @@ describe('PhotoEnlargePage', () => {
     expect(screen.getByText('36 × 48')).toBeInTheDocument()
   })
 
-  it('calls addArtwork when form is complete and button clicked', () => {
+  it('calls addArtwork when form is complete and button clicked', async () => {
     const addArtwork = jest.fn()
     jest.spyOn(require('@/context/CartContext'), 'useCart').mockReturnValue({ addArtwork })
     uploadPhoto()
     selectSize('20 × 24')
     fireEvent.click(screen.getByRole('button', { name: /add to cart/i }))
-    expect(addArtwork).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(addArtwork).toHaveBeenCalledTimes(1))
   })
 })
