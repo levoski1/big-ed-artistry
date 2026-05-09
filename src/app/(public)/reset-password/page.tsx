@@ -17,15 +17,47 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  // null = still waiting, true = recovery session confirmed, false = no valid session
   const [sessionReady, setSessionReady] = useState<boolean | null>(null)
 
-  // Verify a recovery session is actually present
   useEffect(() => {
+    if (hasError) {
+      setSessionReady(false)
+      return
+    }
+
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSessionReady(!!session)
+
+    // Listen for the PASSWORD_RECOVERY event that Supabase fires after the
+    // /auth/reset route exchanges the token for a session cookie.
+    // This is the correct pattern — getSession() on mount races against the
+    // cookie being set and will return null even for a valid recovery session.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setSessionReady(true)
+      } else if (event === 'SIGNED_OUT') {
+        setSessionReady(false)
+      }
     })
-  }, [])
+
+    // Also check the current session immediately — handles the case where the
+    // auth event already fired before this component mounted (e.g. fast navigation).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true)
+      }
+    })
+
+    // Timeout: if no auth event fires within 4 seconds, the token is invalid/expired.
+    const timeout = setTimeout(() => {
+      setSessionReady(prev => (prev === null ? false : prev))
+    }, 4000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [hasError])
 
   const handleSubmit = async () => {
     if (!password || !confirm) { setError('Please fill in both fields.'); return }
@@ -33,21 +65,20 @@ function ResetPasswordForm() {
     if (password.length < 8) { setError(ERR.WEAK_PASSWORD); return }
     setLoading(true)
     setError('')
-    try {
-      await resetPassword(password, confirm)
+    const result = await resetPassword(password, confirm)
+    if ('error' in result) {
+      setError(result.error)
+    } else {
       setDone(true)
       // Sign out so the user logs in fresh with the new password
       const supabase = createClient()
       await supabase.auth.signOut()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : ERR.RESET_FAILED)
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
-  // Invalid/expired token — came here without a valid session
-  if (hasError || sessionReady === false) {
+  // Invalid/expired token — came here without a valid recovery session
+  if (sessionReady === false) {
     return (
       <div style={{ width: '100%', maxWidth: 400 }}>
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, marginBottom: 8 }}>Link Expired</h1>
@@ -64,7 +95,7 @@ function ResetPasswordForm() {
     )
   }
 
-  // Loading session check
+  // Waiting for the auth event / session check
   if (sessionReady === null) {
     return <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Verifying link…</div>
   }
