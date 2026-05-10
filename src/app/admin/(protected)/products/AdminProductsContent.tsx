@@ -113,7 +113,7 @@ export default function AdminProductsContent({ products: initial }: { products: 
   }
 
   return (
-    <div style={{ padding: 36, minHeight: '100vh' }}>
+    <div style={{ padding: 36, minHeight: '100vh' }} className="admin-products-page">
       <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
@@ -122,15 +122,15 @@ export default function AdminProductsContent({ products: initial }: { products: 
         <button onClick={openAdd} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>+ Add Product</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }} className="products-filters">
         <input placeholder="Search products…" value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
         <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{filtered.length} products</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 400px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 400px' : '1fr', gap: 24, alignItems: 'start' }} className="products-layout">
         {/* Product table */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '60px 2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }} className="products-table-head">
             {['', 'Product', 'Price', 'Category', 'Stock', 'Featured', 'Actions'].map(h => (
               <div key={h} style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
             ))}
@@ -138,7 +138,7 @@ export default function AdminProductsContent({ products: initial }: { products: 
           {filtered.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>No products yet. Add your first product.</div>
           ) : filtered.map(p => (
-            <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '60px 2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', background: editing?.id === p.id ? 'rgba(184,134,11,0.04)' : 'transparent' }}>
+            <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '60px 2fr 1fr 1fr 80px 80px 100px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', background: editing?.id === p.id ? 'rgba(184,134,11,0.04)' : 'transparent' }} className="product-row">
               {/* Thumbnail */}
               <div style={{ width: 48, height: 48, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                 {p.image_url ? (
@@ -166,13 +166,18 @@ export default function AdminProductsContent({ products: initial }: { products: 
                 <button onClick={() => openEdit(p)} style={{ fontSize: 11, padding: '5px 10px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Edit</button>
                 <button onClick={() => handleDelete(p.id)} style={{ fontSize: 11, padding: '5px 10px', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Del</button>
               </div>
+              <div className="product-row-meta" style={{ display: 'none', gridColumn: '1 / -1', marginTop: 6, gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
+                <span>{p.category}</span>
+                <span style={{ color: 'var(--gold-light)' }}>{formatPrice(p.price)}</span>
+                <span style={{ color: p.in_stock ? 'var(--success)' : 'var(--danger)' }}>{p.in_stock ? 'In Stock' : 'Out of Stock'}</span>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Add/Edit form */}
         {showForm && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, position: 'sticky', top: 24, maxHeight: '90vh', overflowY: 'auto' }} className="product-form-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24 }}>{editing ? 'Edit Product' : 'Add Product'}</h3>
               <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
@@ -232,6 +237,36 @@ export default function AdminProductsContent({ products: initial }: { products: 
           </div>
         )}
       </div>
+
+      <style suppressHydrationWarning>{`
+        @media (max-width: 700px) {
+          .admin-products-page { padding: 16px !important; }
+          .products-filters { flex-direction: column !important; }
+          .products-filters input { width: 100% !important; }
+          .products-layout { grid-template-columns: 1fr !important; }
+          .products-table-head { display: none !important; }
+          .product-row {
+            grid-template-columns: 1fr 1fr !important;
+            padding: 14px 16px !important;
+            gap: 6px 12px;
+          }
+          .product-row > div:nth-child(1) { grid-row: 1 / 2; }
+          .product-row > div:nth-child(2) { grid-column: 2 / -1; }
+          .product-row > div:nth-child(3),
+          .product-row > div:nth-child(4),
+          .product-row > div:nth-child(5),
+          .product-row > div:nth-child(6) { display: none !important; }
+          .product-row-meta { display: flex !important; }
+          .product-form-panel { position: static !important; max-height: none !important; }
+        }
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .admin-products-page { padding: 20px !important; }
+          .products-layout { grid-template-columns: 1fr !important; }
+          .product-form-panel { position: static !important; max-height: none !important; }
+          .product-row { grid-template-columns: 60px 2fr 1fr 1fr 80px 80px !important; }
+          .product-row > div:nth-child(7) { display: none !important; }
+        }
+      `}</style>
     </div>
   )
 }

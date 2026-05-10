@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { toUserMessage, ERR } from '@/lib/errorMessages'
 
 export async function getAdminStats() {
@@ -45,6 +45,7 @@ export async function getAllCustomers() {
       .from('profiles')
       .select('*')
       .eq('role', 'customer')
+      .not('email', 'like', 'deleted-%@removed')
       .order('created_at', { ascending: false })
     if (error) throw new Error(error.message)
 
@@ -94,5 +95,46 @@ export async function updateOrderPaymentStatus(
   } catch (e) {
     console.error('[updateOrderPaymentStatus]', e instanceof Error ? e.message : e)
     throw new Error(ERR.UPDATE_FAILED)
+  }
+}
+
+export async function deleteUser(userId: string): Promise<{ error: string } | { success: true }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: ERR.NOT_AUTHENTICATED }
+
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (callerProfile?.role !== 'admin') return { error: ERR.PERMISSION_DENIED }
+    if (userId === user.id) return { error: 'You cannot delete your own account.' }
+
+    const admin = createAdminClient()
+
+    const { error: updateError } = await admin
+      .from('profiles')
+      .update({
+        email: `deleted-${userId.slice(0, 8)}@removed`,
+        full_name: 'Deleted User',
+        phone: null,
+      })
+      .eq('id', userId)
+    if (updateError) throw new Error(updateError.message)
+
+    const { error: authError } = await admin.auth.admin.deleteUser(userId)
+    if (authError) {
+      console.error('[deleteUser] Auth deletion failed (profile anonymized):', authError.message)
+    }
+
+    revalidatePath('/admin/customers')
+    revalidatePath('/admin/dashboard')
+
+    return { success: true }
+  } catch (e) {
+    console.error('[deleteUser]', e instanceof Error ? e.message : e)
+    return { error: toUserMessage(e, 'Failed to delete user. Please try again.') }
   }
 }

@@ -14,8 +14,10 @@ jest.mock('@/app/actions/orders', () => ({
   updateOrderStatus: jest.fn().mockResolvedValue({ id: 'o1', status: 'in_progress', payment_status: 'NOT_PAID' }),
 }))
 jest.mock('@/app/actions/uploads', () => ({
-  getAdminUploadsForOrder: jest.fn().mockResolvedValue({ artworkRefs: [], paymentReceipts: [] }),
+  getAdminUploadsForOrder: jest.fn().mockResolvedValue({ items: [], paymentReceipts: [] }),
 }))
+
+const mockGetAdminUploads = jest.requireMock('@/app/actions/uploads').getAdminUploadsForOrder as jest.Mock
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   profiles?: { id: string; full_name: string; email: string; phone: string | null } | null

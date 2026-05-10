@@ -62,14 +62,14 @@ export default function AdminSettingsContent({ user }: { user: Profile | null })
   const tabs = [['profile', '◈ Admin Profile'], ['password', '◇ Change Password'], ['bank', '🏦 Bank Details']] as const
 
   return (
-    <div style={{ padding: 36, minHeight: '100vh' }}>
+    <div style={{ padding: 36, minHeight: '100vh' }} className="admin-settings-page">
       <div style={{ marginBottom: 36, paddingBottom: 24, borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
         <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40 }}>Settings <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>&amp; Profile</span></h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 32, alignItems: 'start' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 32, alignItems: 'start' }} className="settings-layout">
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }} className="settings-sidebar">
           {tabs.map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '16px 20px', fontSize: 13, letterSpacing: '0.06em', background: tab === key ? 'rgba(184,134,11,0.08)' : 'transparent', borderLeft: tab === key ? '2px solid var(--gold-primary)' : '2px solid transparent', color: tab === key ? 'var(--gold-light)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin", sans-serif', transition: 'all 0.2s', borderBottom: '1px solid var(--border-color)' }}>{label}</button>
           ))}
@@ -80,7 +80,7 @@ export default function AdminSettingsContent({ user }: { user: Profile | null })
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 40 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 40 }} className="settings-content">
           {tab === 'profile' && (
             <>
               <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 28, marginBottom: 28 }}>Admin Profile</h2>
@@ -119,7 +119,7 @@ export default function AdminSettingsContent({ user }: { user: Profile | null })
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 28, lineHeight: 1.7 }}>These are the bank accounts customers transfer payments to.</p>
               <div style={{ display: 'grid', gap: 1, background: 'var(--border-color)' }}>
                 {BANK_DETAILS.map(bank => (
-                  <div key={bank.label} style={{ background: 'var(--bg-dark)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={bank.label} style={{ background: 'var(--bg-dark)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="settings-bank-row">
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{bank.label}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Dikibo Eric Tamunonenqiyeofori</div>
@@ -132,6 +132,23 @@ export default function AdminSettingsContent({ user }: { user: Profile | null })
           )}
         </div>
       </div>
+
+      <style suppressHydrationWarning>{`
+        @media (max-width: 700px) {
+          .admin-settings-page { padding: 16px !important; }
+          .settings-layout { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .settings-sidebar { display: flex !important; overflow-x: auto; }
+          .settings-sidebar > button,
+          .settings-sidebar > form { flex-shrink: 0; }
+          .settings-sidebar > div { display: none !important; }
+          .settings-content { padding: 24px 16px !important; }
+          .settings-bank-row { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+        }
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .admin-settings-page { padding: 20px !important; }
+          .settings-layout { gap: 20px !important; }
+        }
+      `}</style>
     </div>
   )
 }

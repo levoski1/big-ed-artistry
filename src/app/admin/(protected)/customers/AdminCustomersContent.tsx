@@ -1,7 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { formatPrice, formatDate } from '@/lib/tokens'
 import { StatusBadge } from '@/components/ui'
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
+import ToastNotification from '@/components/ui/ToastNotification'
+import { deleteUser } from '@/app/actions/admin'
 import type { Database } from '@/lib/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
@@ -12,14 +15,39 @@ type Profile = Database['public']['Tables']['profiles']['Row'] & {
   }[]
 }
 
-export default function AdminCustomersContent({ customers }: { customers: Profile[] }) {
+export default function AdminCustomersContent({ customers: initial }: { customers: Profile[] }) {
+  const [customers, setCustomers] = useState(initial)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Profile | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const filtered = customers.filter(c =>
     c.full_name.toLowerCase().includes(search.toLowerCase()) ||
     c.email.toLowerCase().includes(search.toLowerCase())
   )
+
+  const handleDelete = () => {
+    if (!deleteTarget) return
+    setDeleteError('')
+    startTransition(async () => {
+      try {
+        const result = await deleteUser(deleteTarget.id)
+        if ('error' in result) {
+          setDeleteError(result.error)
+          return
+        }
+        setCustomers(prev => prev.filter(c => c.id !== deleteTarget.id))
+        if (selected?.id === deleteTarget.id) setSelected(null)
+        setDeleteTarget(null)
+        setToast({ message: 'User deleted successfully.', variant: 'success' })
+      } catch {
+        setDeleteError('Failed to delete user. Please try again.')
+      }
+    })
+  }
 
   return (
     <div style={{ padding: 36, minHeight: '100vh' }} className="admin-customers-page">
@@ -35,21 +63,29 @@ export default function AdminCustomersContent({ customers }: { customers: Profil
 
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 360px' : '1fr', gap: 24, alignItems: 'start' }} className="customers-layout">
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }} className="customers-table-head">
-            {['Name', 'Email', 'Phone', 'Orders', 'Joined'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr 60px', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }} className="customers-table-head">
+            {['Name', 'Email', 'Phone', 'Orders', 'Joined', ''].map(h => (
               <div key={h} style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
             ))}
           </div>
           {filtered.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>No customers yet.</div>
           ) : filtered.map(c => (
-            <div key={c.id} onClick={() => setSelected(selected?.id === c.id ? null : c)} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', cursor: 'pointer', background: selected?.id === c.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }} className="customer-row">
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{c.full_name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.email}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.phone ?? '—'}</div>
-              <div style={{ fontSize: 13, color: 'var(--gold-light)' }}>{c.orders?.length ?? 0}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(c.created_at)}</div>
-              {/* Mobile card meta — shown only on small screens via CSS */}
+            <div key={c.id} className="customer-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr 60px', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', background: selected?.id === c.id ? 'rgba(184,134,11,0.04)' : 'transparent', transition: 'background 0.2s' }}>
+              <div style={{ fontSize: 13, fontWeight: 500, cursor: 'pointer' }} onClick={() => setSelected(selected?.id === c.id ? null : c)}>{c.full_name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setSelected(selected?.id === c.id ? null : c)}>{c.email}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setSelected(selected?.id === c.id ? null : c)}>{c.phone ?? '—'}</div>
+              <div style={{ fontSize: 13, color: 'var(--gold-light)', cursor: 'pointer' }} onClick={() => setSelected(selected?.id === c.id ? null : c)}>{c.orders?.length ?? 0}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setSelected(selected?.id === c.id ? null : c)}>{formatDate(c.created_at)}</div>
+              <button
+                onClick={() => setDeleteTarget(c)}
+                title="Delete user"
+                aria-label={`Delete user ${c.full_name}`}
+                data-testid={`delete-user-${c.id}`}
+                style={{ padding: '4px 8px', fontSize: 11, background: 'transparent', border: '1px solid rgba(220,38,38,0.3)', color: 'var(--danger)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}
+              >
+                Del
+              </button>
               <div className="customer-card-meta" style={{ display: 'none', gridColumn: '1 / -1', marginTop: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
                 {c.email} · <span style={{ color: 'var(--gold-light)' }}>{c.orders?.length ?? 0} orders</span>
               </div>
@@ -79,7 +115,7 @@ export default function AdminCustomersContent({ customers }: { customers: Profil
               </div>
 
               {selected.orders && selected.orders.length > 0 && (
-                <div>
+                <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Order History</div>
                   {selected.orders.slice(0, 5).map(o => (
                     <div key={o.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -95,10 +131,44 @@ export default function AdminCustomersContent({ customers }: { customers: Profil
                   ))}
                 </div>
               )}
+
+              <button
+                onClick={() => setDeleteTarget(selected)}
+                data-testid="delete-user-panel"
+                style={{ width: '100%', padding: '12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}
+              >
+                Delete User
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title="Delete User"
+          message="Are you sure you want to delete this user? This action cannot be undone."
+          detailLines={[
+            { label: 'Name', value: deleteTarget.full_name },
+            { label: 'Email', value: deleteTarget.email },
+            { label: 'Orders', value: String(deleteTarget.orders?.length ?? 0) },
+            { label: 'Total Spent', value: formatPrice(deleteTarget.orders?.reduce((s, o) => s + o.amount_paid, 0) ?? 0) },
+          ]}
+          confirmLabel="Delete User"
+          onConfirm={handleDelete}
+          onCancel={() => { setDeleteTarget(null); setDeleteError('') }}
+          loading={isPending}
+          error={deleteError}
+        />
+      )}
+
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
+      )}
 
       <style suppressHydrationWarning>{`
         @media (max-width: 700px) {
@@ -106,11 +176,13 @@ export default function AdminCustomersContent({ customers }: { customers: Profil
           .customers-filters { flex-direction: column !important; }
           .customers-layout { grid-template-columns: 1fr !important; }
           .customers-table-head { display: none !important; }
-          .customer-row { grid-template-columns: 1fr !important; padding: 14px 16px !important; }
+          .customer-row { grid-template-columns: 1fr 60px !important; padding: 14px 16px !important; }
+          .customer-row > div:nth-child(1) { grid-column: 1 !important; }
           .customer-row > div:nth-child(2),
           .customer-row > div:nth-child(3),
           .customer-row > div:nth-child(4),
           .customer-row > div:nth-child(5) { display: none !important; }
+          .customer-row > button { grid-column: 2 !important; grid-row: 1 !important; align-self: center !important; }
           .customer-card-meta { display: block !important; }
           .customer-detail-panel { position: static !important; }
         }
@@ -119,7 +191,7 @@ export default function AdminCustomersContent({ customers }: { customers: Profil
           .customers-layout { grid-template-columns: 1fr !important; }
           .customer-detail-panel { position: static !important; }
           .customers-table-head,
-          .customer-row { grid-template-columns: 1.5fr 1.5fr 1fr 1fr !important; }
+          .customer-row { grid-template-columns: 1.5fr 1.5fr 1fr 1fr 60px !important; }
           .customers-table-head > div:nth-child(3),
           .customer-row > div:nth-child(3) { display: none !important; }
         }

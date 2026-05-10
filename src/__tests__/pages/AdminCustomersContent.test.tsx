@@ -10,6 +10,9 @@ jest.mock('@/lib/tokens', () => ({
 jest.mock('@/components/ui', () => ({
   StatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
 }))
+jest.mock('@/app/actions/admin', () => ({
+  deleteUser: jest.fn(),
+}))
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   orders: {
@@ -29,7 +32,13 @@ const makeCustomer = (overrides: Partial<Profile> = {}): Profile => ({
   ...overrides,
 })
 
+const mockDeleteUser = jest.mocked(require('@/app/actions/admin').deleteUser)
+
 describe('AdminCustomersContent', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('shows empty state when no customers', () => {
     render(<AdminCustomersContent customers={[]} />)
     expect(screen.getByText('No customers yet.')).toBeInTheDocument()
@@ -81,6 +90,109 @@ describe('AdminCustomersContent', () => {
   it('shows — for missing phone', () => {
     render(<AdminCustomersContent customers={[makeCustomer({ phone: null })]} />)
     expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  // ── Delete functionality ────────────────────────────────────────────
+
+  it('shows Del button for each customer row', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    expect(screen.getByTestId('delete-user-u1')).toBeInTheDocument()
+  })
+
+  it('shows Delete User button in detail panel', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByText('Jane Doe'))
+    expect(screen.getByTestId('delete-user-panel')).toBeInTheDocument()
+  })
+
+  it('opens confirmation modal when Del button is clicked', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
+  })
+
+  it('opens confirmation modal from detail panel Delete User button', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByText('Jane Doe'))
+    fireEvent.click(screen.getByTestId('delete-user-panel'))
+    expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
+  })
+
+  it('confirmation modal shows customer name and email', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    const nameMatches = screen.getAllByText('Jane Doe')
+    expect(nameMatches.length).toBeGreaterThan(0)
+    const emailMatches = screen.getAllByText('jane@test.com')
+    expect(emailMatches.length).toBeGreaterThan(0)
+  })
+
+  it('confirmation modal shows warning message', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    expect(screen.getByText(/this action cannot be undone/i)).toBeInTheDocument()
+  })
+
+  it('closes confirmation modal on cancel', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('confirm-delete-cancel'))
+    expect(screen.queryByTestId('confirm-delete-modal')).not.toBeInTheDocument()
+  })
+
+  it('calls deleteUser on confirm and removes customer from list', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(mockDeleteUser).toHaveBeenCalledWith('u1')
+    // Wait for the state update
+    await screen.findByText('No customers yet.')
+    expect(screen.getByText('No customers yet.')).toBeInTheDocument()
+  })
+
+  it('calls deleteUser on confirm and shows success toast', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByTestId('toast-notification')).toBeInTheDocument()
+    expect(screen.getByText('User deleted successfully.')).toBeInTheDocument()
+  })
+
+  it('shows error in modal when deleteUser fails', async () => {
+    mockDeleteUser.mockResolvedValue({ error: 'Failed to delete user.' })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByTestId('confirm-delete-error')).toHaveTextContent('Failed to delete user.')
+  })
+
+  it('removes customer from list after successful delete', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    const customers = [
+      makeCustomer({ id: 'u1', full_name: 'Jane Doe' }),
+      makeCustomer({ id: 'u2', full_name: 'John Smith', orders: [] }),
+    ]
+    render(<AdminCustomersContent customers={customers} />)
+    expect(screen.getByText('2 customers')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByText('John Smith')).toBeInTheDocument()
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+    expect(screen.getByText('1 customers')).toBeInTheDocument()
+  })
+
+  it('closes detail panel when deleted customer was selected', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByText('Jane Doe'))
+    expect(screen.getByText('Order History')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('delete-user-panel'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    await screen.findByText('No customers yet.')
+    expect(screen.queryByText('Order History')).not.toBeInTheDocument()
   })
 })
 
