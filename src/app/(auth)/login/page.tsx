@@ -15,6 +15,7 @@ function LoginForm() {
   const errorParam = searchParams.get('error')
   const isExpired = errorParam === 'link_expired'
   const isInvalid = errorParam === 'invalid_token'
+  const isVerificationFailed = errorParam === 'verification_failed'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -99,6 +100,16 @@ function LoginForm() {
           <button onClick={handleResend} disabled={resendStatus !== 'idle'} style={{ background: 'none', border: 'none', color: 'var(--gold-light)', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>
             {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Sent ✓' : 'resend confirmation email'}
           </button>.
+        </div>
+      )}
+
+      {isVerificationFailed && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderLeft: '3px solid #eab308', color: '#fde047', fontSize: 13, lineHeight: 1.6 }}>
+          ⚠ Unable to complete email verification. If your email was already confirmed, please sign in below. Otherwise, enter your email and click{' '}
+          <button onClick={handleResend} disabled={resendStatus !== 'idle'} style={{ background: 'none', border: 'none', color: 'var(--gold-light)', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>
+            {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Sent ✓' : 'resend confirmation email'}
+          </button>{' '}
+          to receive a new confirmation link.
         </div>
       )}
 

@@ -13,15 +13,13 @@ import { resetAppUrlCache } from '@/lib/appUrl'
 const mockExchangeCode = jest.fn()
 const mockVerifyOtp = jest.fn()
 
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() =>
-    Promise.resolve({
-      auth: {
-        exchangeCodeForSession: mockExchangeCode,
-        verifyOtp: mockVerifyOtp,
-      },
-    })
-  ),
+jest.mock('@supabase/ssr', () => ({
+  createServerClient: jest.fn(() => ({
+    auth: {
+      exchangeCodeForSession: mockExchangeCode,
+      verifyOtp: mockVerifyOtp,
+    },
+  })),
 }))
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -30,15 +28,23 @@ function makeRequest(url: string): Request {
   return new Request(url)
 }
 
+function location(resp: Response): string {
+  return resp.headers.get('location') ?? ''
+}
+
 // ─── Setup ────────────────────────────────────────────────────────────────
 
 beforeAll(() => {
   process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
   resetAppUrlCache()
 })
 
 afterAll(() => {
   delete process.env.NEXT_PUBLIC_SITE_URL
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL
+  delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   resetAppUrlCache()
 })
 
@@ -55,7 +61,7 @@ describe('PKCE code flow', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?code=valid-code-123')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/reset-password')
+    expect(location(response)).toBe('http://localhost:3000/reset-password')
     expect(mockExchangeCode).toHaveBeenCalledWith('valid-code-123')
   })
 
@@ -64,7 +70,7 @@ describe('PKCE code flow', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?code=expired-code')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('redirects to /forgot-password?error=1 when code is invalid', async () => {
@@ -72,7 +78,7 @@ describe('PKCE code flow', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?code=bad-code')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('does NOT fall through to token_hash when code is invalid', async () => {
@@ -81,7 +87,7 @@ describe('PKCE code flow', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?code=bad-code&token_hash=abc&type=recovery')
     const response = await GET(req as any)
     // Should return the code error, not fall through to token_hash
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
     expect(mockVerifyOtp).not.toHaveBeenCalled()
   })
 })
@@ -94,7 +100,7 @@ describe('token_hash flow (legacy)', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?token_hash=valid-token&type=recovery')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/reset-password')
+    expect(location(response)).toBe('http://localhost:3000/reset-password')
     expect(mockVerifyOtp).toHaveBeenCalledWith({
       type: 'recovery',
       token_hash: 'valid-token',
@@ -106,7 +112,7 @@ describe('token_hash flow (legacy)', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?token_hash=expired-token&type=recovery')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('redirects to /forgot-password?error=1 when token is invalid', async () => {
@@ -114,7 +120,7 @@ describe('token_hash flow (legacy)', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?token_hash=bad-token&type=recovery')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('ignores token_hash when type is not recovery', async () => {
@@ -122,7 +128,7 @@ describe('token_hash flow (legacy)', () => {
     const req = makeRequest('http://localhost:3000/auth/reset?token_hash=some-token&type=signup')
     const response = await GET(req as any)
     // type !== 'recovery' so it falls through to error
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
     expect(mockVerifyOtp).not.toHaveBeenCalled()
   })
 })
@@ -134,18 +140,18 @@ describe('fallback (no valid params)', () => {
     const req = makeRequest('http://localhost:3000/auth/reset')
     const response = await GET(req as any)
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('redirects to /forgot-password?error=1 for unrecognised params', async () => {
     const req = makeRequest('http://localhost:3000/auth/reset?foo=bar&baz=qux')
     const response = await GET(req as any)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 
   it('redirects to /forgot-password?error=1 when only type=recovery without token_hash', async () => {
     const req = makeRequest('http://localhost:3000/auth/reset?type=recovery')
     const response = await GET(req as any)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/forgot-password?error=1')
+    expect(location(response)).toBe('http://localhost:3000/forgot-password?error=1')
   })
 })

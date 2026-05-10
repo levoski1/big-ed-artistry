@@ -98,7 +98,36 @@ export async function updateOrderPaymentStatus(
   }
 }
 
-export async function deleteUser(userId: string): Promise<{ error: string } | { success: true }> {
+const BUCKET_MAP: Record<string, string> = {
+  artwork_reference: 'artwork-references',
+  payment_receipt: 'payment-receipts',
+}
+
+async function deleteUserStorageFiles(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data: uploads } = await admin
+    .from('uploads')
+    .select('storage_path, file_type')
+    .eq('user_id', userId)
+  if (!uploads || uploads.length === 0) return
+
+  const bucketGroups: Record<string, string[]> = {}
+  for (const u of uploads) {
+    const bucket = BUCKET_MAP[u.file_type]
+    if (!bucket) continue
+    if (!bucketGroups[bucket]) bucketGroups[bucket] = []
+    bucketGroups[bucket].push(u.storage_path)
+  }
+
+  for (const [bucket, paths] of Object.entries(bucketGroups)) {
+    const { error } = await admin.storage.from(bucket).remove(paths)
+    if (error) console.error(`[deleteUser] Storage cleanup failed for bucket ${bucket}:`, error.message)
+  }
+}
+
+export async function deleteUser(
+  userId: string,
+  mode: 'user_only' | 'full' = 'user_only'
+): Promise<{ error: string } | { success: true }> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -114,19 +143,54 @@ export async function deleteUser(userId: string): Promise<{ error: string } | { 
 
     const admin = createAdminClient()
 
-    const { error: updateError } = await admin
-      .from('profiles')
-      .update({
-        email: `deleted-${userId.slice(0, 8)}@removed`,
-        full_name: 'Deleted User',
-        phone: null,
-      })
-      .eq('id', userId)
-    if (updateError) throw new Error(updateError.message)
+    if (mode === 'full') {
+      await deleteUserStorageFiles(admin, userId)
 
-    const { error: authError } = await admin.auth.admin.deleteUser(userId)
-    if (authError) {
-      console.error('[deleteUser] Auth deletion failed (profile anonymized):', authError.message)
+      const { error: uploadsError } = await admin.from('uploads').delete().eq('user_id', userId)
+      if (uploadsError) console.error('[deleteUser] uploads deletion:', uploadsError.message)
+
+      const { error: reviewsError } = await admin.from('reviews').delete().eq('user_id', userId)
+      if (reviewsError) console.error('[deleteUser] reviews deletion:', reviewsError.message)
+
+      const { error: prefsError } = await admin.from('notification_preferences').delete().eq('user_id', userId)
+      if (prefsError) console.error('[deleteUser] notification_preferences deletion:', prefsError.message)
+
+      const { data: userOrders } = await admin.from('orders').select('id').eq('user_id', userId)
+      const orderIds = (userOrders ?? []).map(o => o.id)
+
+      if (orderIds.length > 0) {
+        const { error: paymentsError } = await admin.from('payments').delete().in('order_id', orderIds)
+        if (paymentsError) console.error('[deleteUser] payments deletion:', paymentsError.message)
+
+        const { error: itemsError } = await admin.from('order_items').delete().in('order_id', orderIds)
+        if (itemsError) console.error('[deleteUser] order_items deletion:', itemsError.message)
+
+        const { error: ordersError } = await admin.from('orders').delete().in('id', orderIds)
+        if (ordersError) console.error('[deleteUser] orders deletion:', ordersError.message)
+      }
+
+      const { error: profileError } = await admin.from('profiles').delete().eq('id', userId)
+      if (profileError) throw new Error(profileError.message)
+
+      const { error: authError } = await admin.auth.admin.deleteUser(userId)
+      if (authError) {
+        console.error('[deleteUser] Auth deletion failed (records cleaned):', authError.message)
+      }
+    } else {
+      const { error: updateError } = await admin
+        .from('profiles')
+        .update({
+          email: `deleted-${userId.slice(0, 8)}@removed`,
+          full_name: 'Deleted User',
+          phone: null,
+        })
+        .eq('id', userId)
+      if (updateError) throw new Error(updateError.message)
+
+      const { error: authError } = await admin.auth.admin.deleteUser(userId)
+      if (authError) {
+        console.error('[deleteUser] Auth deletion failed (profile anonymized):', authError.message)
+      }
     }
 
     revalidatePath('/admin/customers')

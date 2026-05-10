@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { getAppUrl } from '@/lib/appUrl'
 
 /**
@@ -20,10 +20,26 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
 
-  const supabase = await createClient()
+  function makeClient() {
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll() },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
+          },
+        },
+      }
+    )
+  }
 
   // 1. PKCE flow (modern Supabase default)
   if (code) {
+    const supabase = makeClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${baseUrl}/reset-password`)
@@ -33,6 +49,7 @@ export async function GET(request: NextRequest) {
 
   // 2. token_hash flow (legacy)
   if (token_hash && type === 'recovery') {
+    const supabase = makeClient()
     const { error } = await supabase.auth.verifyOtp({
       type: 'recovery',
       token_hash,

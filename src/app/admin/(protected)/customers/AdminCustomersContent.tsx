@@ -29,12 +29,12 @@ export default function AdminCustomersContent({ customers: initial }: { customer
     c.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleDelete = () => {
+  const handleDelete = (deletionType: 'user_only' | 'full') => {
     if (!deleteTarget) return
     setDeleteError('')
     startTransition(async () => {
       try {
-        const result = await deleteUser(deleteTarget.id)
+        const result = await deleteUser(deleteTarget.id, deletionType)
         if ('error' in result) {
           setDeleteError(result.error)
           return
@@ -42,7 +42,10 @@ export default function AdminCustomersContent({ customers: initial }: { customer
         setCustomers(prev => prev.filter(c => c.id !== deleteTarget.id))
         if (selected?.id === deleteTarget.id) setSelected(null)
         setDeleteTarget(null)
-        setToast({ message: 'User deleted successfully.', variant: 'success' })
+        const msg = deletionType === 'full'
+          ? 'User and all associated records deleted successfully.'
+          : 'User deleted successfully.'
+        setToast({ message: msg, variant: 'success' })
       } catch {
         setDeleteError('Failed to delete user. Please try again.')
       }
@@ -147,7 +150,7 @@ export default function AdminCustomersContent({ customers: initial }: { customer
       {deleteTarget && (
         <ConfirmDeleteModal
           title="Delete User"
-          message="Are you sure you want to delete this user? This action cannot be undone."
+          message="This action may permanently remove the user and optionally all related activities including orders, deposits, uploads, and transaction history."
           detailLines={[
             { label: 'Name', value: deleteTarget.full_name },
             { label: 'Email', value: deleteTarget.email },
@@ -159,6 +162,7 @@ export default function AdminCustomersContent({ customers: initial }: { customer
           onCancel={() => { setDeleteTarget(null); setDeleteError('') }}
           loading={isPending}
           error={deleteError}
+          showDeletionType
         />
       )}
 
