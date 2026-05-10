@@ -92,7 +92,7 @@ describe('AdminCustomersContent', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  // ── Delete functionality ────────────────────────────────────────────
+  // ── Delete UI ──────────────────────────────────────────────
 
   it('shows Del button for each customer row', () => {
     render(<AdminCustomersContent customers={[makeCustomer()]} />)
@@ -118,7 +118,7 @@ describe('AdminCustomersContent', () => {
     expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
   })
 
-  it('confirmation modal shows customer name and email', () => {
+  it('confirmation modal shows customer details', () => {
     render(<AdminCustomersContent customers={[makeCustomer()]} />)
     fireEvent.click(screen.getByTestId('delete-user-u1'))
     const nameMatches = screen.getAllByText('Jane Doe')
@@ -127,10 +127,11 @@ describe('AdminCustomersContent', () => {
     expect(emailMatches.length).toBeGreaterThan(0)
   })
 
-  it('confirmation modal shows warning message', () => {
+  it('confirmation modal shows deletion type options', () => {
     render(<AdminCustomersContent customers={[makeCustomer()]} />)
     fireEvent.click(screen.getByTestId('delete-user-u1'))
-    expect(screen.getByText(/this action cannot be undone/i)).toBeInTheDocument()
+    expect(screen.getByTestId('deletion-type-user_only')).toBeInTheDocument()
+    expect(screen.getByTestId('deletion-type-full')).toBeInTheDocument()
   })
 
   it('closes confirmation modal on cancel', () => {
@@ -141,18 +142,24 @@ describe('AdminCustomersContent', () => {
     expect(screen.queryByTestId('confirm-delete-modal')).not.toBeInTheDocument()
   })
 
-  it('calls deleteUser on confirm and removes customer from list', async () => {
+  it('modal shows warning message about related activities', () => {
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    expect(screen.getByText(/orders, deposits, uploads/i)).toBeInTheDocument()
+  })
+
+  // ── Delete User Only flow ──────────────────────────────────
+
+  it('calls deleteUser with user_only on confirm with default selection', async () => {
     mockDeleteUser.mockResolvedValue({ success: true })
     render(<AdminCustomersContent customers={[makeCustomer()]} />)
     fireEvent.click(screen.getByTestId('delete-user-u1'))
     fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
-    expect(mockDeleteUser).toHaveBeenCalledWith('u1')
-    // Wait for the state update
+    expect(mockDeleteUser).toHaveBeenCalledWith('u1', 'user_only')
     await screen.findByText('No customers yet.')
-    expect(screen.getByText('No customers yet.')).toBeInTheDocument()
   })
 
-  it('calls deleteUser on confirm and shows success toast', async () => {
+  it('shows success toast after user_only deletion', async () => {
     mockDeleteUser.mockResolvedValue({ success: true })
     render(<AdminCustomersContent customers={[makeCustomer()]} />)
     fireEvent.click(screen.getByTestId('delete-user-u1'))
@@ -161,15 +168,7 @@ describe('AdminCustomersContent', () => {
     expect(screen.getByText('User deleted successfully.')).toBeInTheDocument()
   })
 
-  it('shows error in modal when deleteUser fails', async () => {
-    mockDeleteUser.mockResolvedValue({ error: 'Failed to delete user.' })
-    render(<AdminCustomersContent customers={[makeCustomer()]} />)
-    fireEvent.click(screen.getByTestId('delete-user-u1'))
-    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
-    expect(await screen.findByTestId('confirm-delete-error')).toHaveTextContent('Failed to delete user.')
-  })
-
-  it('removes customer from list after successful delete', async () => {
+  it('removes customer from list after user_only deletion', async () => {
     mockDeleteUser.mockResolvedValue({ success: true })
     const customers = [
       makeCustomer({ id: 'u1', full_name: 'Jane Doe' }),
@@ -179,7 +178,7 @@ describe('AdminCustomersContent', () => {
     expect(screen.getByText('2 customers')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('delete-user-u1'))
     fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
-    expect(await screen.findByText('John Smith')).toBeInTheDocument()
+    expect(await screen.findByText('John Smith'))
     expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
     expect(screen.getByText('1 customers')).toBeInTheDocument()
   })
@@ -193,6 +192,71 @@ describe('AdminCustomersContent', () => {
     fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
     await screen.findByText('No customers yet.')
     expect(screen.queryByText('Order History')).not.toBeInTheDocument()
+  })
+
+  it('shows error in modal when deleteUser fails', async () => {
+    mockDeleteUser.mockResolvedValue({ error: 'Failed to delete user.' })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByTestId('confirm-delete-error')).toHaveTextContent('Failed to delete user.')
+  })
+
+  // ── Delete User + All Activities flow ──────────────────────
+
+  it('calls deleteUser with full when "Delete All Activities" is selected', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByDisplayValue('full'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(mockDeleteUser).toHaveBeenCalledWith('u1', 'full')
+    await screen.findByText('No customers yet.')
+  })
+
+  it('shows full deletion success toast message', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByDisplayValue('full'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByTestId('toast-notification')).toBeInTheDocument()
+    expect(screen.getByText(/User and all associated records deleted/i)).toBeInTheDocument()
+  })
+
+  it('removes customer from list after full deletion', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    const customers = [
+      makeCustomer({ id: 'u1', full_name: 'Jane Doe' }),
+      makeCustomer({ id: 'u2', full_name: 'John Smith', orders: [] }),
+    ]
+    render(<AdminCustomersContent customers={customers} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByDisplayValue('full'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByText('John Smith'))
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+  })
+
+  it('shows error for full deletion failure', async () => {
+    mockDeleteUser.mockResolvedValue({ error: 'Deletion failed.' })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    fireEvent.click(screen.getByDisplayValue('full'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(await screen.findByTestId('confirm-delete-error')).toHaveTextContent('Deletion failed.')
+  })
+
+  it('switches between deletion types before confirming', async () => {
+    mockDeleteUser.mockResolvedValue({ success: true })
+    render(<AdminCustomersContent customers={[makeCustomer()]} />)
+    fireEvent.click(screen.getByTestId('delete-user-u1'))
+    // Start with user_only (default)
+    fireEvent.click(screen.getByDisplayValue('full'))
+    fireEvent.click(screen.getByDisplayValue('user_only'))
+    fireEvent.click(screen.getByTestId('confirm-delete-confirm'))
+    expect(mockDeleteUser).toHaveBeenCalledWith('u1', 'user_only')
+    await screen.findByText('No customers yet.')
   })
 })
 

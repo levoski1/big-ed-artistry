@@ -17,7 +17,6 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  // null = still waiting, true = recovery session confirmed, false = no valid session
   const [sessionReady, setSessionReady] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -27,35 +26,43 @@ function ResetPasswordForm() {
     }
 
     const supabase = createClient()
+    let cancelled = false
+    let resolved = false
 
-    // Listen for the PASSWORD_RECOVERY event that Supabase fires after the
-    // /auth/reset route exchanges the token for a session cookie.
-    // This is the correct pattern — getSession() on mount races against the
-    // cookie being set and will return null even for a valid recovery session.
+    const resolve = (ready: boolean) => {
+      if (cancelled || resolved) return
+      resolved = true
+      setSessionReady(ready)
+    }
+
+    // 1. Try the current session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) resolve(true)
+    })
+
+    // 2. Listen for PASSWORD_RECOVERY or SIGNED_IN events
+    // (fires when the session is established after a fresh code exchange)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-        setSessionReady(true)
+        resolve(true)
       } else if (event === 'SIGNED_OUT') {
-        setSessionReady(false)
+        resolve(false)
       }
     })
 
-    // Also check the current session immediately — handles the case where the
-    // auth event already fired before this component mounted (e.g. fast navigation).
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true)
-      }
-    })
-
-    // Timeout: if no auth event fires within 4 seconds, the token is invalid/expired.
-    const timeout = setTimeout(() => {
-      setSessionReady(prev => (prev === null ? false : prev))
-    }, 4000)
+    // 3. Fallback: getUser() validates the session against the Supabase server.
+    // This handles cases where the session cookie was set on the redirect
+    // response but the local getSession() call hasn't picked it up yet.
+    const fallbackTimeout = setTimeout(async () => {
+      if (cancelled || resolved) return
+      const { data: { user } } = await supabase.auth.getUser()
+      resolve(!!user)
+    }, 2000)
 
     return () => {
+      cancelled = true
       subscription.unsubscribe()
-      clearTimeout(timeout)
+      clearTimeout(fallbackTimeout)
     }
   }, [hasError])
 
@@ -70,14 +77,12 @@ function ResetPasswordForm() {
       setError(result.error)
     } else {
       setDone(true)
-      // Sign out so the user logs in fresh with the new password
       const supabase = createClient()
       await supabase.auth.signOut()
     }
     setLoading(false)
   }
 
-  // Invalid/expired token — came here without a valid recovery session
   if (sessionReady === false) {
     return (
       <div style={{ width: '100%', maxWidth: 400 }}>
@@ -95,7 +100,6 @@ function ResetPasswordForm() {
     )
   }
 
-  // Waiting for the auth event / session check
   if (sessionReady === null) {
     return <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Verifying link…</div>
   }
