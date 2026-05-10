@@ -54,15 +54,16 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
         } else {
           const formData = new FormData()
           formData.append('file', file!)
-          const created = await createGalleryItem(formData, {
-            title: draft.title!,
+          formData.append('meta', JSON.stringify({
+            title: draft.title,
             medium: draft.medium ?? 'Pencil on Paper',
-            size: draft.size ?? undefined,
+            size: draft.size || null,
             year: draft.year ?? new Date().getFullYear(),
-            category: draft.category!,
-            description: draft.description ?? undefined,
+            category: draft.category,
+            description: draft.description || null,
             featured: draft.featured ?? false,
-          })
+          }))
+          const created = await createGalleryItem(formData)
           setItems(prev => [created, ...prev])
         }
         closeForm()
@@ -95,7 +96,7 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
   }
 
   return (
-    <div style={{ padding: 36, minHeight: '100vh' }}>
+    <div style={{ padding: 36, minHeight: '100vh' }} className="admin-gallery-page">
       <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Admin Panel</div>
@@ -106,7 +107,7 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
 
       {error && <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171', fontSize: 13 }}>{error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 400px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 400px' : '1fr', gap: 24, alignItems: 'start' }} className="gallery-layout">
         {/* Gallery grid */}
         <div>
           {items.length === 0 ? (
@@ -116,7 +117,7 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
               <button onClick={openAdd} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-accent))', color: 'var(--text-on-gold)', border: 'none', cursor: 'pointer', fontFamily: '"Libre Franklin",sans-serif' }}>Upload Artwork</button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }} className="gallery-grid">
               {items.map(item => (
                 <div key={item.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                   <div style={{ height: 200, position: 'relative', overflow: 'hidden', background: 'var(--bg-dark)' }}>
@@ -142,7 +143,7 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
 
         {/* Upload/Edit form */}
         {showForm && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, position: 'sticky', top: 24 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: 28, position: 'sticky', top: 24 }} className="gallery-form-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24 }}>{editing ? 'Edit Artwork' : 'Upload Artwork'}</h3>
               <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
@@ -196,6 +197,22 @@ export default function AdminGalleryContent({ items: initial }: { items: Gallery
           </div>
         )}
       </div>
+
+      <style suppressHydrationWarning>{`
+        @media (max-width: 700px) {
+          .admin-gallery-page { padding: 16px !important; }
+          .gallery-layout { grid-template-columns: 1fr !important; }
+          .gallery-form-panel { position: static !important; max-height: none !important; }
+          .gallery-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+          .gallery-grid > div > div:first-child { height: 140px !important; }
+          .gallery-grid > div > div:last-child { padding: 10px 12px !important; }
+        }
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .admin-gallery-page { padding: 20px !important; }
+          .gallery-layout { grid-template-columns: 1fr !important; }
+          .gallery-form-panel { position: static !important; max-height: none !important; }
+        }
+      `}</style>
     </div>
   )
 }

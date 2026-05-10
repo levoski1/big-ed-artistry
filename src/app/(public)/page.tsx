@@ -8,8 +8,8 @@ import { getGalleryItems } from '@/app/actions/gallery'
 import { getProducts } from '@/app/actions/products'
 import { getReviews } from '@/app/actions/reviews'
 import { createClient } from '@/lib/supabase/server'
-import { formatPrice } from '@/lib/tokens'
 import type { Database } from '@/lib/types/database'
+import HomeProductSection from '@/app/(public)/_components/HomeProductSection'
 
 type Product = Database['public']['Tables']['products']['Row']
 
@@ -174,44 +174,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── STORE — dynamic, only if admin has added products ─── */}
-      {featuredProducts.length > 0 && (
-        <section style={{ padding: '100px 0', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 48, flexWrap: 'wrap', gap: 16 }}>
-              <div><SectionTag>Store</SectionTag><h2 style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 'clamp(32px,4vw,52px)' }}>Art Products <span style={{ color: 'var(--gold-light)', fontStyle: 'italic' }}>&amp; Prints</span></h2></div>
-              <Link href="/store" style={{ padding: '12px 24px', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>View All Products →</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }} className="products-grid">
-              {featuredProducts.map(p => (
-                <div key={p.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: 200, background: 'var(--bg-dark)', overflow: 'hidden', position: 'relative' }}>
-                    {p.image_url ? (
-                      <Image src={p.image_url} alt={p.name} fill style={{ objectFit: 'cover' }} sizes="(max-width:540px) 100vw, (max-width:1024px) 50vw, 25vw" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="40" height="40" viewBox="0 0 48 48" fill="none" style={{ opacity: 0.1 }}><rect x="8" y="8" width="32" height="32" stroke="#D4A84B" strokeWidth="1" /></svg>
-                      </div>
-                    )}
-                    {p.badge && <div style={{ position: 'absolute', top: 10, left: 10, padding: '3px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg,var(--gold-primary),var(--gold-accent))', color: 'var(--text-on-gold)' }}>{p.badge}</div>}
-                  </div>
-                  <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{p.category}</div>
-                    <div style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 17, color: 'var(--text-primary)', lineHeight: 1.2 }}>{p.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 8 }}>
-                      <span style={{ fontFamily: '"Cormorant Garamond",serif', fontSize: 18, color: 'var(--gold-light)' }}>{formatPrice(p.price)}</span>
-                      {p.original_price && <span style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{formatPrice(p.original_price)}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 40 }}>
-              <Link href="/store" style={{ display: 'inline-flex', padding: '14px 32px', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Browse All Products in Store →</Link>
-            </div>
-          </div>
-          <style>{`@media(max-width:1024px){.products-grid{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:540px){.products-grid{grid-template-columns:1fr!important;}}`}</style>
-        </section>
-      )}
+      {featuredProducts.length > 0 && <HomeProductSection products={featuredProducts} />}
 
       {/* ── HOW IT WORKS ─────────────────────────────────────── */}
       <section style={{ padding: '100px 0', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
